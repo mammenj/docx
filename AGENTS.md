@@ -44,6 +44,8 @@ Before finishing a change: run the focused test, then `:app:testDebugUnitTest` a
 - `app/schemas/...` — generated Room schema JSON; commit changes and write migrations
 - `app/src/test` — JVM tests; `app/src/androidTest` — Room/Compose device tests
 
+Scrollable forms must keep `Modifier.imePadding()` and the activity's `android:windowSoftInputMode="adjustResize"` so the keyboard does not cover lower input fields.
+
 ## Data model rules
 
 - **UID is the patient identity.** `patients.uid` has a unique index. Never deduplicate or look up patients by name or phone.
