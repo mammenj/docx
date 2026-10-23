@@ -4,7 +4,7 @@
 
 Android app for doctors managing outpatients. Register a patient (name, hospital UID, age, sex, phone), record visits with symptoms and vitals (BP, glucose, pulse, temperature, SpO2, weight), and review visit history.
 
-- Package: `com.example.outpatient`
+- Package: `com.jsmammen`
 - Module: `:app` only
 - UI: Kotlin + Jetpack Compose + Material 3, Navigation Compose
 - Data: Room, local-only; no backend and no network calls

@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.outpatient"
+    namespace = "com.jsmammen"
     compileSdk = 37
 
     defaultConfig {
-        applicationId = "com.example.outpatient"
+        applicationId = "com.jsmammen"
         minSdk = 26
         targetSdk = 37
         versionCode = 1
