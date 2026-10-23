@@ -11,6 +11,7 @@ import com.jsmammen.ui.patient.PatientDetailScreen
 import com.jsmammen.ui.patient.PatientFormScreen
 import com.jsmammen.ui.patient.PatientListScreen
 import com.jsmammen.ui.reports.ReportsScreen
+import com.jsmammen.ui.settings.ClinicDetailsScreen
 import com.jsmammen.ui.visit.VisitDetailScreen
 import com.jsmammen.ui.visit.VisitFormScreen
 
@@ -21,6 +22,7 @@ object Routes {
     const val NEW_VISIT = "patients/{patientId}/visits/new"
     const val VISIT_DETAIL = "visits/{visitId}"
     const val REPORTS = "reports"
+    const val SETTINGS = "settings"
 
     fun patientDetail(patientId: Long) = "patients/$patientId"
 
@@ -44,6 +46,7 @@ fun OutpatientNavHost(
                 onAddPatient = { navController.navigate(Routes.NEW_PATIENT) },
                 onPatientClick = { navController.navigate(Routes.patientDetail(it)) },
                 onReports = { navController.navigate(Routes.REPORTS) },
+                onSettings = { navController.navigate(Routes.SETTINGS) },
             )
         }
         composable(Routes.NEW_PATIENT) {
@@ -83,6 +86,9 @@ fun OutpatientNavHost(
         }
         composable(Routes.REPORTS) {
             ReportsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.SETTINGS) {
+            ClinicDetailsScreen(onBack = { navController.popBackStack() })
         }
     }
 }
