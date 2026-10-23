@@ -89,6 +89,14 @@ fun PatientFormScreen(
             )
 
             OutlinedTextField(
+                value = state.idNumber,
+                onValueChange = viewModel::onIdNumberChange,
+                label = { Text("ID (optional)") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+            )
+
+            OutlinedTextField(
                 value = state.age,
                 onValueChange = viewModel::onAgeChange,
                 label = { Text("Age (years)") },

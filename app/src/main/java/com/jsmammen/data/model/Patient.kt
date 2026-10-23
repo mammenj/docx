@@ -12,6 +12,7 @@ data class Patient(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val uid: String,
     val name: String,
+    val idNumber: String? = null,
     val ageYears: Int? = null,
     val sex: String? = null,
     val phone: String? = null,

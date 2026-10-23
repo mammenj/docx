@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,6 +34,7 @@ import com.jsmammen.ui.rememberRepository
 fun PatientListScreen(
     onAddPatient: () -> Unit,
     onPatientClick: (Long) -> Unit,
+    onReports: () -> Unit,
 ) {
     val repository = rememberRepository()
     val viewModel: PatientListViewModel = viewModel {
@@ -43,7 +45,14 @@ fun PatientListScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("Outpatients") })
+            TopAppBar(
+                title = { Text("Outpatients") },
+                actions = {
+                    TextButton(onClick = onReports) {
+                        Text("Reports")
+                    }
+                },
+            )
         },
         floatingActionButton = {
             FloatingActionButton(onClick = onAddPatient) {

@@ -13,6 +13,7 @@ import kotlinx.coroutines.launch
 data class PatientFormState(
     val name: String = "",
     val uid: String = "",
+    val idNumber: String = "",
     val age: String = "",
     val sex: String = "",
     val phone: String = "",
@@ -33,6 +34,8 @@ class PatientFormViewModel(
     fun onNameChange(value: String) = _state.update { it.copy(name = value, nameError = null) }
 
     fun onUidChange(value: String) = _state.update { it.copy(uid = value, uidError = null) }
+
+    fun onIdNumberChange(value: String) = _state.update { it.copy(idNumber = value) }
 
     fun onAgeChange(value: String) = _state.update { it.copy(age = value, ageError = null) }
 
@@ -66,6 +69,7 @@ class PatientFormViewModel(
                 Patient(
                     uid = uid,
                     name = current.name.trim(),
+                    idNumber = current.idNumber.trim().ifBlank { null },
                     ageYears = current.age.trim().toIntOrNull(),
                     sex = current.sex.trim().ifBlank { null },
                     phone = current.phone.trim().ifBlank { null },

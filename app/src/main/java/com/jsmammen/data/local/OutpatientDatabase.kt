@@ -5,12 +5,14 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.jsmammen.data.model.Patient
 import com.jsmammen.data.model.Visit
 
 @Database(
     entities = [Patient::class, Visit::class],
-    version = 1,
+    version = 2,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -23,6 +25,12 @@ abstract class OutpatientDatabase : RoomDatabase() {
     companion object {
         private const val DATABASE_NAME = "outpatient.db"
 
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE patients ADD COLUMN idNumber TEXT")
+            }
+        }
+
         @Volatile
         private var instance: OutpatientDatabase? = null
 
@@ -32,7 +40,9 @@ abstract class OutpatientDatabase : RoomDatabase() {
                     context.applicationContext,
                     OutpatientDatabase::class.java,
                     DATABASE_NAME,
-                ).build().also { instance = it }
+                ).addMigrations(MIGRATION_1_2)
+                    .build()
+                    .also { instance = it }
             }
     }
 }

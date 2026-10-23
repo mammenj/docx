@@ -137,6 +137,7 @@ private fun PatientHeader(patient: Patient) {
                 style = MaterialTheme.typography.bodyMedium,
             )
             val details = listOfNotNull(
+                patient.idNumber?.let { "ID $it" },
                 patient.ageYears?.let { "$it yrs" },
                 patient.sex?.takeIf { it.isNotBlank() },
                 patient.phone?.takeIf { it.isNotBlank() },
