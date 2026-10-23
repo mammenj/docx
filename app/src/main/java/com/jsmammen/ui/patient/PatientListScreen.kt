@@ -55,6 +55,7 @@ fun PatientListScreen(
     onPatientClick: (Long) -> Unit,
     onReports: () -> Unit,
     onSettings: () -> Unit,
+    onBackup: () -> Unit,
 ) {
     val repository = rememberRepository()
     val viewModel: PatientListViewModel = viewModel {
@@ -88,6 +89,13 @@ fun PatientListScreen(
                             onClick = {
                                 menuExpanded = false
                                 onSettings()
+                            },
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Backup & restore") },
+                            onClick = {
+                                menuExpanded = false
+                                onBackup()
                             },
                         )
                     }

@@ -15,6 +15,8 @@ class OutpatientRepository(
 
     fun observeVisits(patientId: Long): Flow<List<Visit>> = visitDao.observeForPatient(patientId)
 
+    fun observeAllVisits(): Flow<List<Visit>> = visitDao.observeAll()
+
     suspend fun getPatient(id: Long): Patient? = patientDao.getById(id)
 
     suspend fun isUidTaken(uid: String, excludingPatientId: Long? = null): Boolean =
@@ -36,6 +38,21 @@ class OutpatientRepository(
         patientDao.softDelete(id, now)
 
     suspend fun addVisit(visit: Visit): Long = visitDao.insert(visit)
+
+    suspend fun getAllPatients(): List<Patient> = patientDao.getAll()
+
+    suspend fun getAllVisits(): List<Visit> = visitDao.getAll()
+
+    suspend fun clearAll() {
+        visitDao.deleteAll()
+        patientDao.deleteAll()
+    }
+
+    suspend fun importAll(patients: List<Patient>, visits: List<Visit>) {
+        clearAll()
+        patients.forEach { patientDao.insert(it) }
+        visits.forEach { visitDao.insert(it) }
+    }
 
     suspend fun getVisit(id: Long): Visit? = visitDao.getById(id)
 

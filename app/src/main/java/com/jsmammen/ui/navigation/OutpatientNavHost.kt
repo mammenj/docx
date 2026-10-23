@@ -9,6 +9,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.jsmammen.ui.patient.PatientDetailScreen
 import com.jsmammen.ui.patient.PatientFormScreen
+import com.jsmammen.ui.backup.BackupScreen
 import com.jsmammen.ui.patient.PatientListScreen
 import com.jsmammen.ui.reports.ReportsScreen
 import com.jsmammen.ui.settings.ClinicDetailsScreen
@@ -23,6 +24,7 @@ object Routes {
     const val VISIT_DETAIL = "visits/{visitId}"
     const val REPORTS = "reports"
     const val SETTINGS = "settings"
+    const val BACKUP = "backup"
 
     fun patientDetail(patientId: Long) = "patients/$patientId"
 
@@ -47,6 +49,7 @@ fun OutpatientNavHost(
                 onPatientClick = { navController.navigate(Routes.patientDetail(it)) },
                 onReports = { navController.navigate(Routes.REPORTS) },
                 onSettings = { navController.navigate(Routes.SETTINGS) },
+                onBackup = { navController.navigate(Routes.BACKUP) },
             )
         }
         composable(Routes.NEW_PATIENT) {
@@ -89,6 +92,9 @@ fun OutpatientNavHost(
         }
         composable(Routes.SETTINGS) {
             ClinicDetailsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.BACKUP) {
+            BackupScreen(onBack = { navController.popBackStack() })
         }
     }
 }

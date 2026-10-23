@@ -20,8 +20,14 @@ interface PatientDao {
     @Query("UPDATE patients SET deletedAt = :now, updatedAt = :now WHERE id = :id")
     suspend fun softDelete(id: Long, now: Long)
 
+    @Query("DELETE FROM patients")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM patients WHERE deletedAt IS NULL ORDER BY name COLLATE NOCASE ASC")
     fun observeActive(): Flow<List<Patient>>
+
+    @Query("SELECT * FROM patients")
+    suspend fun getAll(): List<Patient>
 
     @Query("SELECT * FROM patients WHERE id = :id")
     suspend fun getById(id: Long): Patient?
