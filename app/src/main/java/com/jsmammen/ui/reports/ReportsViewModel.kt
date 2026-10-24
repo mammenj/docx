@@ -57,7 +57,8 @@ class ReportsViewModel(
     val filters: StateFlow<ReportFilters> = _filters
 
     private val _allPatients = MutableStateFlow<List<Patient>>(emptyList())
-    private val _visitsByPatient = MutableStateFlow<Map<Long, List<Visit>>>(emptyMap())
+    val _visitsByPatient = MutableStateFlow<Map<Long, List<Visit>>>(emptyMap())
+    val visitsByPatient: StateFlow<Map<Long, List<Visit>>> = _visitsByPatient
 
     private val _isGenerating = MutableStateFlow(false)
     val isGenerating: StateFlow<Boolean> = _isGenerating
@@ -218,7 +219,7 @@ class ReportsViewModel(
         }
     }
 
-    private fun reportVisits(patient: Patient, filter: ReportFilters, visits: List<Visit>): List<Visit> {
+    fun reportVisits(patient: Patient, filter: ReportFilters, visits: List<Visit>): List<Visit> {
         return when (filter.type) {
             ReportType.VISITED_ON_DATE -> {
                 val (start, end) = dateRange(filter.dateMillis)

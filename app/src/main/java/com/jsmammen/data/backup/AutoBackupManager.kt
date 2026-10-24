@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.drop
 import kotlinx.coroutines.launch
 import org.json.JSONArray
 import org.json.JSONObject
@@ -20,14 +21,23 @@ class AutoBackupManager(
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
+    @Volatile
+    private var suppressUntil = 0L
+
+    fun suppressNextBackup() {
+        suppressUntil = System.currentTimeMillis() + 10_000
+    }
+
     fun start() {
         scope.launch {
             combine(
                 repository.observePatients(),
                 repository.observeAllVisits(),
             ) { patients, visits -> patients to visits }
+                .drop(1)
                 .debounce(2_000)
                 .collect { (patients, visits) ->
+                    if (System.currentTimeMillis() < suppressUntil) return@collect
                     writeBackup(patients, visits)
                 }
         }

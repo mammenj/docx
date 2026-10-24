@@ -33,6 +33,7 @@ fun ClinicDetailsScreen(onBack: () -> Unit) {
     var doctorName by remember { mutableStateOf(settings.doctorName) }
     var doctorContact by remember { mutableStateOf(settings.doctorContact) }
     var hospitalName by remember { mutableStateOf(settings.hospitalName) }
+    var saved by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -58,19 +59,19 @@ fun ClinicDetailsScreen(onBack: () -> Unit) {
             )
             OutlinedTextField(
                 value = doctorName,
-                onValueChange = { doctorName = it },
+                onValueChange = { doctorName = it; saved = false },
                 label = { Text("Doctor name") },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = doctorContact,
-                onValueChange = { doctorContact = it },
+                onValueChange = { doctorContact = it; saved = false },
                 label = { Text("Doctor contact (phone/email)") },
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
                 value = hospitalName,
-                onValueChange = { hospitalName = it },
+                onValueChange = { hospitalName = it; saved = false },
                 label = { Text("Hospital / clinic name") },
                 modifier = Modifier.fillMaxWidth(),
             )
@@ -79,10 +80,18 @@ fun ClinicDetailsScreen(onBack: () -> Unit) {
                     settings.doctorName = doctorName
                     settings.doctorContact = doctorContact
                     settings.hospitalName = hospitalName
+                    saved = true
                 },
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Save")
+            }
+            if (saved) {
+                Text(
+                    text = "Clinic details saved.",
+                    color = MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
         }
     }

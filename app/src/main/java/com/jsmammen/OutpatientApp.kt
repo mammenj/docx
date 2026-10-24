@@ -12,8 +12,12 @@ class OutpatientApp : Application() {
         OutpatientRepository(database.patientDao(), database.visitDao())
     }
 
+    val autoBackupManager: AutoBackupManager by lazy {
+        AutoBackupManager(this, repository).also { it.start() }
+    }
+
     override fun onCreate() {
         super.onCreate()
-        AutoBackupManager(this, repository).start()
+        autoBackupManager
     }
 }

@@ -32,6 +32,9 @@ interface PatientDao {
     @Query("SELECT * FROM patients WHERE id = :id")
     suspend fun getById(id: Long): Patient?
 
+    @Query("SELECT * FROM patients WHERE id = :id")
+    fun observeById(id: Long): Flow<Patient?>
+
     @Query("SELECT * FROM patients WHERE uid = :uid AND deletedAt IS NULL LIMIT 1")
     suspend fun findActiveByUid(uid: String): Patient?
 

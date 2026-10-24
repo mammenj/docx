@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.jsmammen.ui.patient.PatientDetailScreen
+import com.jsmammen.ui.patient.PatientEditScreen
 import com.jsmammen.ui.patient.PatientFormScreen
 import com.jsmammen.ui.backup.BackupScreen
 import com.jsmammen.ui.patient.PatientListScreen
@@ -21,6 +22,7 @@ object Routes {
     const val NEW_PATIENT = "patients/new"
     const val PATIENT_DETAIL = "patients/{patientId}"
     const val NEW_VISIT = "patients/{patientId}/visits/new"
+    const val EDIT_PATIENT = "patients/{patientId}/edit"
     const val VISIT_DETAIL = "visits/{visitId}"
     const val REPORTS = "reports"
     const val SETTINGS = "settings"
@@ -29,6 +31,8 @@ object Routes {
     fun patientDetail(patientId: Long) = "patients/$patientId"
 
     fun newVisit(patientId: Long) = "patients/$patientId/visits/new"
+
+    fun editPatient(patientId: Long) = "patients/$patientId/edit"
 
     fun visitDetail(visitId: Long) = "visits/$visitId"
 }
@@ -65,6 +69,7 @@ fun OutpatientNavHost(
                 onBack = { navController.popBackStack() },
                 onAddVisit = { navController.navigate(Routes.newVisit(patientId)) },
                 onVisitClick = { navController.navigate(Routes.visitDetail(it)) },
+                onEdit = { navController.navigate(Routes.editPatient(patientId)) },
             )
         }
         composable(
@@ -89,6 +94,16 @@ fun OutpatientNavHost(
         }
         composable(Routes.REPORTS) {
             ReportsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(
+            route = Routes.EDIT_PATIENT,
+            arguments = listOf(navArgument(PATIENT_ID_ARG) { type = NavType.LongType }),
+        ) { entry ->
+            val patientId = entry.arguments?.getLong(PATIENT_ID_ARG) ?: 0L
+            PatientEditScreen(
+                patientId = patientId,
+                onDone = { navController.popBackStack() },
+            )
         }
         composable(Routes.SETTINGS) {
             ClinicDetailsScreen(onBack = { navController.popBackStack() })

@@ -24,11 +24,16 @@ object BackupStorage {
     @RequiresApi(Build.VERSION_CODES.Q)
     private fun saveViaMediaStore(context: Context, fileName: String, content: String): Uri? {
         val collection = MediaStore.Downloads.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        // Replace any previous file with the same name.
+        // Remove previous backups (including older timestamped files) so Downloads stays clean.
         context.contentResolver.delete(
             collection,
-            "${MediaStore.Downloads.DISPLAY_NAME} = ?",
-            arrayOf(fileName),
+            "${MediaStore.Downloads.DISPLAY_NAME} LIKE ?",
+            arrayOf("OutpatientBackup%"),
+        )
+        context.contentResolver.delete(
+            collection,
+            "${MediaStore.Downloads.DISPLAY_NAME} LIKE ?",
+            arrayOf("OutpatientAutoBackup%"),
         )
         val values = ContentValues().apply {
             put(MediaStore.Downloads.DISPLAY_NAME, fileName)
@@ -47,6 +52,11 @@ object BackupStorage {
     private fun saveToPublicDownloads(context: Context, fileName: String, content: String): Uri? {
         val dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         dir.mkdirs()
+        dir.listFiles()?.forEach { file ->
+            if (file.name.startsWith("OutpatientBackup") || file.name.startsWith("OutpatientAutoBackup")) {
+                file.delete()
+            }
+        }
         val file = File(dir, fileName)
         FileOutputStream(file).use { it.write(content.toByteArray()) }
         return Uri.fromFile(file)

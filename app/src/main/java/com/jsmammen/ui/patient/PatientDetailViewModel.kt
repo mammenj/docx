@@ -30,8 +30,10 @@ class PatientDetailViewModel(
 
     init {
         viewModelScope.launch {
-            _patient.value = repository.getPatient(patientId)
-            _loading.value = false
+            repository.observePatient(patientId).collect { patient ->
+                _patient.value = patient
+                _loading.value = false
+            }
         }
     }
 }

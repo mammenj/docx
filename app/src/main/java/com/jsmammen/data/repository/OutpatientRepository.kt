@@ -19,6 +19,8 @@ class OutpatientRepository(
 
     suspend fun getPatient(id: Long): Patient? = patientDao.getById(id)
 
+    fun observePatient(id: Long): Flow<Patient?> = patientDao.observeById(id)
+
     suspend fun isUidTaken(uid: String, excludingPatientId: Long? = null): Boolean =
         if (excludingPatientId == null) {
             patientDao.countActiveByUid(uid) > 0

@@ -2,6 +2,7 @@ package com.jsmammen.ui.backup
 
 import android.content.Context
 import android.net.Uri
+import com.jsmammen.OutpatientApp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jsmammen.data.model.Patient
@@ -40,7 +41,7 @@ class BackupViewModel(
                     put("visits", JSONArray(visits.map { it.toJson() }))
                 }
                 val jsonText = json.toString(2)
-                val fileName = "OutpatientBackup_${System.currentTimeMillis()}.json"
+                val fileName = "OutpatientBackup.json"
                 val uri = com.jsmammen.data.backup.BackupStorage.save(context, fileName, jsonText)
                     ?: throw IllegalStateException("Cannot create backup file")
                 _exportedUri.value = uri
@@ -65,6 +66,7 @@ class BackupViewModel(
                 val patients = (0 until patientsJson.length()).map { patientsJson.getJSONObject(it).toPatient() }
                 val visits = (0 until visitsJson.length()).map { visitsJson.getJSONObject(it).toVisit() }
                 repository.importAll(patients, visits)
+                (context.applicationContext as OutpatientApp).autoBackupManager.suppressNextBackup()
                 _status.value = "Imported ${patients.size} patients and ${visits.size} visits."
             } catch (exception: Exception) {
                 _status.value = "Import failed: ${exception.message}"

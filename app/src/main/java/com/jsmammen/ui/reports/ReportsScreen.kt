@@ -29,6 +29,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,7 @@ fun ReportsScreen(
     }
     val filters by viewModel.filters.collectAsStateWithLifecycle()
     val results by viewModel.results.collectAsStateWithLifecycle()
+    val visitsByPatient by viewModel.visitsByPatient.collectAsStateWithLifecycle()
     val isGenerating by viewModel.isGenerating.collectAsStateWithLifecycle()
     val generatedFile by viewModel.generatedFile.collectAsStateWithLifecycle()
 
@@ -227,11 +229,32 @@ fun ReportsScreen(
 
             items(results.take(25)) { patient ->
                 androidx.compose.material3.Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(12.dp)) {
+                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(patient.name, style = MaterialTheme.typography.titleSmall)
                         Text("UID ${patient.uid}", style = MaterialTheme.typography.bodySmall)
                         patient.idNumber?.let { Text("ID $it", style = MaterialTheme.typography.bodySmall) }
                         patient.ageYears?.let { Text("Age $it", style = MaterialTheme.typography.bodySmall) }
+                        val visits = viewModel.reportVisits(patient, filters, visitsByPatient[patient.id].orEmpty())
+                        if (visits.isNotEmpty()) {
+                            Text("Visits: ${visits.size}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+                            visits.take(5).forEach { visit ->
+                                val vitals = reportVitalsSummary(visit)
+                                Text(
+                                    text = "${com.jsmammen.ui.util.formatTimestamp(visit.recordedAt)}" +
+                                        if (vitals.isNotEmpty()) " - ${vitals.joinToString(", ")}" else "",
+                                    style = MaterialTheme.typography.bodySmall,
+                                )
+                                if (visit.symptoms.isNotBlank()) {
+                                    Text("  Symptoms: ${visit.symptoms}", style = MaterialTheme.typography.bodySmall)
+                                }
+                                if (visit.notes.isNotBlank()) {
+                                    Text("  Notes: ${visit.notes}", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                            if (visits.size > 5) {
+                                Text("...and ${visits.size - 5} more visits", style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
                     }
                 }
             }
@@ -277,6 +300,23 @@ fun ReportsScreen(
             DatePicker(state = datePickerState)
         }
     }
+}
+
+private fun formatMetric(value: Double): String =
+    if (value % 1.0 == 0.0) value.toInt().toString()
+    else String.format(java.util.Locale.getDefault(), "%.1f", value)
+
+private fun reportVitalsSummary(visit: com.jsmammen.data.model.Visit): List<String> = buildList {
+    if (visit.systolic != null && visit.diastolic != null) {
+        add("BP ${visit.systolic}/${visit.diastolic}")
+    }
+    if (visit.glucoseValue != null && visit.glucoseUnit != null) {
+        add("Glu ${formatMetric(visit.glucoseValue)} ${visit.glucoseUnit.label}")
+    }
+    visit.pulse?.let { add("Pulse $it") }
+    visit.temperatureC?.let { add("Temp ${formatMetric(it)}") }
+    visit.spo2?.let { add("SpO2 $it%") }
+    visit.weightKg?.let { add("Wt ${formatMetric(it)}") }
 }
 
 private fun ReportType.label(): String = when (this) {

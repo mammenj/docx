@@ -15,6 +15,18 @@ import java.util.Locale
 
 object PdfReportGenerator {
 
+    private val columns = listOf(
+        Column("Date", 86f),
+        Column("BP (mmHg)", 62f),
+        Column("Glucose", 72f),
+        Column("Pulse", 52f),
+        Column("Temp (C)", 52f),
+        Column("SpO2", 48f),
+        Column("Weight (kg)", 60f),
+    )
+
+    private data class Column(val title: String, val width: Float)
+
     fun generate(
         context: Context,
         title: String,
@@ -27,9 +39,9 @@ object PdfReportGenerator {
         val doctorContact = settings.doctorContact
 
         val document = PdfDocument()
-        val margin = 40f
         val pageWidth = 595f
         val pageHeight = 842f
+        val margin = 40f
         val maxWidth = pageWidth - 2 * margin
 
         var pageNumber = 1
@@ -37,30 +49,26 @@ object PdfReportGenerator {
         var canvas = page.canvas
         var y = margin
 
-        val paint = Paint().apply {
-            textSize = 10.5f
-            color = Color.BLACK
-        }
+        val paint = Paint().apply { textSize = 9.5f; color = Color.BLACK }
         val bold = Paint(paint).apply { typeface = Typeface.DEFAULT_BOLD }
-        val headingPaint = Paint(bold).apply { textSize = 15f; color = Color.rgb(15, 76, 129) }
-        val smallPaint = Paint(paint).apply { textSize = 9f; color = Color.rgb(96, 112, 138) }
+        val headingPaint = Paint(bold).apply { textSize = 14f; color = Color.rgb(15, 76, 129) }
+        val smallPaint = Paint(paint).apply { textSize = 8.5f; color = Color.rgb(96, 112, 138) }
+        val tableHeaderPaint = Paint(bold).apply { textSize = 8.5f; color = Color.WHITE }
+        val tablePaint = Paint(paint).apply { textSize = 8.5f }
 
         fun drawHeader() {
             y = margin
             canvas.drawText(hospitalName, margin, y, headingPaint)
-            y += 16f
+            y += 15f
             canvas.drawText(doctorName, margin, y, bold)
-            y += 12f
+            y += 11f
             if (doctorContact.isNotBlank()) {
                 canvas.drawText(doctorContact, margin, y, smallPaint)
-                y += 12f
+                y += 11f
             }
-            val linePaint = Paint().apply {
-                color = Color.rgb(15, 76, 129)
-                strokeWidth = 1f
-            }
+            val linePaint = Paint().apply { color = Color.rgb(15, 76, 129); strokeWidth = 1f }
             canvas.drawLine(margin, y, pageWidth - margin, y, linePaint)
-            y += 16f
+            y += 14f
         }
 
         fun drawFooter() {
@@ -95,49 +103,99 @@ object PdfReportGenerator {
                 val count = paintToUse.breakText(remaining, true, width, null)
                 val safeCount = if (count <= 0) 1 else count
                 val line = remaining.substring(0, safeCount)
-                ensureSpace(13f)
+                ensureSpace(12f)
                 canvas.drawText(line, margin + indent, y, paintToUse)
-                y += 13f
+                y += 12f
                 remaining = remaining.substring(safeCount).trimStart()
             }
         }
 
         drawHeader()
 
-        canvas.drawText(title, margin, y, Paint(bold).apply { textSize = 13f })
-        y += 16f
+        canvas.drawText(title, margin, y, Paint(bold).apply { textSize = 12f })
+        y += 15f
         drawWrapped("Generated ${formatTimestamp(System.currentTimeMillis())}", smallPaint)
         drawWrapped("Patients: ${patients.size}", smallPaint)
         y += 6f
 
         patients.forEach { patient ->
-            ensureSpace(30f)
-            canvas.drawText(patient.name, margin, y, bold)
+            ensureSpace(60f)
+
+            // Patient header block
+            canvas.drawText(patient.name, margin, y, Paint(bold).apply { textSize = 11.5f })
             y += 13f
-            drawWrapped("UID: ${patient.uid}", paint)
-            patient.idNumber?.let { drawWrapped("ID: $it", paint) }
-            patient.ageYears?.let { drawWrapped("Age: $it", paint) }
-            patient.sex?.let { drawWrapped("Sex: $it", paint) }
-            patient.phone?.let { drawWrapped("Phone: $it", paint) }
+            val meta = listOfNotNull(
+                "UID: ${patient.uid}",
+                patient.idNumber?.let { "ID: $it" },
+                patient.ageYears?.let { "Age: $it" },
+                patient.sex?.let { "Sex: $it" },
+                patient.phone?.let { "Phone: $it" },
+            ).joinToString("   |   ")
+            drawWrapped(meta, smallPaint)
+            y += 4f
 
             val visits = visitsByPatient[patient.id].orEmpty()
+
+            // Table header
             if (visits.isNotEmpty()) {
-                drawWrapped("Visits:", bold)
+                ensureSpace(16f)
+                val headerBg = Paint().apply { color = Color.rgb(15, 76, 129) }
+                canvas.drawRect(margin, y - 10f, margin + columns.sumOf { it.width.toDouble() }.toFloat(), y + 4f, headerBg)
+                var x = margin
+                columns.forEach { col ->
+                    canvas.drawText(col.title, x + 2f, y, tableHeaderPaint)
+                    x += col.width
+                }
+                y += 6f
+                val linePaint = Paint().apply { color = Color.rgb(200, 210, 225); strokeWidth = 0.5f }
+                canvas.drawLine(margin, y, margin + columns.sumOf { it.width.toDouble() }.toFloat(), y, linePaint)
+                y += 10f
+
                 visits.forEach { visit ->
-                    drawWrapped("- ${formatTimestamp(visit.recordedAt)}", paint, 4f)
+                    ensureSpace(14f)
+                    x = margin
+                    val cells = listOf(
+                        formatTimestamp(visit.recordedAt).take(16),
+                        if (visit.systolic != null && visit.diastolic != null) "${visit.systolic}/${visit.diastolic}" else "-",
+                        if (visit.glucoseValue != null && visit.glucoseUnit != null) "${formatMetric(visit.glucoseValue)} ${visit.glucoseUnit.label}" else "-",
+                        visit.pulse?.toString() ?: "-",
+                        visit.temperatureC?.let { formatMetric(it) } ?: "-",
+                        visit.spo2?.toString() ?: "-",
+                        visit.weightKg?.let { formatMetric(it) } ?: "-",
+                    )
+                    cells.forEachIndexed { index, cell ->
+                        val col = columns[index]
+                        val text = truncate(tablePaint, cell, col.width - 4f)
+                        canvas.drawText(text, x + 2f, y, tablePaint)
+                        x += col.width
+                    }
+                    y += 13f
+                }
+                y += 4f
+            } else {
+                drawWrapped("No visits in this report.", smallPaint)
+                y += 4f
+            }
+
+            // Notes and symptoms below the table
+            val visitsWithText = visits.filter { it.symptoms.isNotBlank() || it.notes.isNotBlank() }
+            if (visitsWithText.isNotEmpty()) {
+                drawWrapped("Visit notes:", bold)
+                visitsWithText.forEach { visit ->
+                    drawWrapped("- ${formatTimestamp(visit.recordedAt)}", bold, 4f)
                     if (visit.symptoms.isNotBlank()) {
                         drawWrapped("  Symptoms: ${visit.symptoms}", paint, 4f)
                     }
                     if (visit.notes.isNotBlank()) {
                         drawWrapped("  Notes: ${visit.notes}", paint, 4f)
                     }
-                    val vitals = vitalsSummary(visit)
-                    if (vitals.isNotEmpty()) {
-                        drawWrapped("  Vitals: ${vitals.joinToString(", ")}", paint, 4f)
-                    }
                 }
             }
-            y += 8f
+
+            // Divider between patients
+            val dividerPaint = Paint().apply { color = Color.rgb(220, 228, 240); strokeWidth = 0.5f }
+            canvas.drawLine(margin, y + 2f, pageWidth - margin, y + 2f, dividerPaint)
+            y += 10f
         }
 
         drawFooter()
@@ -148,6 +206,15 @@ object PdfReportGenerator {
         FileOutputStream(file).use { document.writeTo(it) }
         document.close()
         return file
+    }
+
+    private fun truncate(paint: Paint, text: String, maxWidth: Float): String {
+        if (paint.measureText(text) <= maxWidth) return text
+        var end = text.length
+        while (end > 0 && paint.measureText(text.substring(0, end) + "...") > maxWidth) {
+            end--
+        }
+        return if (end <= 0) "" else text.substring(0, end) + "..."
     }
 
     private fun vitalsSummary(visit: Visit): List<String> = buildList {
