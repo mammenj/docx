@@ -272,7 +272,7 @@ class ReportsViewModel(
         return true
     }
 
-    private fun reportTitle(filter: ReportFilters): String {
+    fun reportTitle(filter: ReportFilters): String {
         return when (filter.type) {
             ReportType.VISITED_ON_DATE -> "Patients visited on ${formatDate(filter.dateMillis)}"
             ReportType.SYMPTOMS -> "Patients with symptoms: ${filter.symptomQuery.trim()}"

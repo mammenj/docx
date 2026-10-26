@@ -16,13 +16,13 @@ import java.util.Locale
 object PdfReportGenerator {
 
     private val columns = listOf(
-        Column("Date", 86f),
-        Column("BP (mmHg)", 62f),
-        Column("Glucose", 72f),
-        Column("Pulse", 52f),
-        Column("Temp (C)", 52f),
-        Column("SpO2", 48f),
-        Column("Weight (kg)", 60f),
+        Column("Date", 105f),
+        Column("BP (mmHg)", 70f),
+        Column("Glucose", 85f),
+        Column("Pulse", 50f),
+        Column("Temp (°C)", 60f),
+        Column("SpO2", 50f),
+        Column("Weight (kg)", 95f),
     )
 
     private data class Column(val title: String, val width: Float)
@@ -140,7 +140,7 @@ object PdfReportGenerator {
             if (visits.isNotEmpty()) {
                 ensureSpace(16f)
                 val headerBg = Paint().apply { color = Color.rgb(15, 76, 129) }
-                canvas.drawRect(margin, y - 10f, margin + columns.sumOf { it.width.toDouble() }.toFloat(), y + 4f, headerBg)
+                canvas.drawRect(margin, y - 10f, margin + maxWidth, y + 4f, headerBg)
                 var x = margin
                 columns.forEach { col ->
                     canvas.drawText(col.title, x + 2f, y, tableHeaderPaint)
@@ -148,14 +148,14 @@ object PdfReportGenerator {
                 }
                 y += 6f
                 val linePaint = Paint().apply { color = Color.rgb(200, 210, 225); strokeWidth = 0.5f }
-                canvas.drawLine(margin, y, margin + columns.sumOf { it.width.toDouble() }.toFloat(), y, linePaint)
+                canvas.drawLine(margin, y, margin + maxWidth, y, linePaint)
                 y += 10f
 
                 visits.forEach { visit ->
                     ensureSpace(14f)
                     x = margin
                     val cells = listOf(
-                        formatTimestamp(visit.recordedAt).take(16),
+                        formatTimestamp(visit.recordedAt),
                         if (visit.systolic != null && visit.diastolic != null) "${visit.systolic}/${visit.diastolic}" else "-",
                         if (visit.glucoseValue != null && visit.glucoseUnit != null) "${formatMetric(visit.glucoseValue)} ${visit.glucoseUnit.label}" else "-",
                         visit.pulse?.toString() ?: "-",

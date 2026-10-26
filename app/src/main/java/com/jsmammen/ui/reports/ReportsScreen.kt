@@ -1,24 +1,37 @@
 package com.jsmammen.ui.reports
 
 import android.content.Intent
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -29,15 +42,21 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jsmammen.data.model.Patient
+import com.jsmammen.data.model.Visit
+import com.jsmammen.data.settings.ClinicSettings
 import com.jsmammen.ui.rememberRepository
 import kotlinx.coroutines.launch
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -86,7 +105,9 @@ fun ReportsScreen(
             TopAppBar(
                 title = { Text("Reports") },
                 navigationIcon = {
-                    TextButton(onClick = onBack) { Text("Back") }
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
                 },
             )
         },
@@ -95,14 +116,15 @@ fun ReportsScreen(
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+                .padding(padding)
+                .imePadding(),
+            contentPadding = PaddingValues(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
                 Text("Report type", style = MaterialTheme.typography.titleSmall)
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ReportType.values().forEach { type ->
+                    ReportType.entries.forEach { type ->
                         FilterChip(
                             selected = filters.type == type,
                             onClick = { viewModel.setType(type) },
@@ -224,45 +246,17 @@ fun ReportsScreen(
             }
 
             item {
-                Text("Results: ${results.size}", style = MaterialTheme.typography.titleSmall)
+                Text("Document Preview", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
             }
 
-            items(results.take(25)) { patient ->
-                androidx.compose.material3.Card(modifier = Modifier.fillMaxWidth()) {
-                    Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(patient.name, style = MaterialTheme.typography.titleSmall)
-                        Text("UID ${patient.uid}", style = MaterialTheme.typography.bodySmall)
-                        patient.idNumber?.let { Text("ID $it", style = MaterialTheme.typography.bodySmall) }
-                        patient.ageYears?.let { Text("Age $it", style = MaterialTheme.typography.bodySmall) }
-                        val visits = viewModel.reportVisits(patient, filters, visitsByPatient[patient.id].orEmpty())
-                        if (visits.isNotEmpty()) {
-                            Text("Visits: ${visits.size}", style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
-                            visits.take(5).forEach { visit ->
-                                val vitals = reportVitalsSummary(visit)
-                                Text(
-                                    text = "${com.jsmammen.ui.util.formatTimestamp(visit.recordedAt)}" +
-                                        if (vitals.isNotEmpty()) " - ${vitals.joinToString(", ")}" else "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                )
-                                if (visit.symptoms.isNotBlank()) {
-                                    Text("  Symptoms: ${visit.symptoms}", style = MaterialTheme.typography.bodySmall)
-                                }
-                                if (visit.notes.isNotBlank()) {
-                                    Text("  Notes: ${visit.notes}", style = MaterialTheme.typography.bodySmall)
-                                }
-                            }
-                            if (visits.size > 5) {
-                                Text("...and ${visits.size - 5} more visits", style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (results.size > 25) {
-                item {
-                    Text("...and ${results.size - 25} more")
-                }
+            item {
+                PdfDocumentPreview(
+                    title = viewModel.reportTitle(filters),
+                    patients = results,
+                    visitsByPatient = visitsByPatient,
+                    filters = filters,
+                    viewModel = viewModel,
+                )
             }
 
             item {
@@ -302,22 +296,273 @@ fun ReportsScreen(
     }
 }
 
+@Composable
+private fun PdfDocumentPreview(
+    title: String,
+    patients: List<Patient>,
+    visitsByPatient: Map<Long, List<Visit>>,
+    filters: ReportFilters,
+    viewModel: ReportsViewModel,
+    modifier: Modifier = Modifier,
+) {
+    val context = LocalContext.current
+    val settings = remember(context) { ClinicSettings(context) }
+    val hospitalName = settings.hospitalName.ifBlank { "Hospital / Clinic" }
+    val doctorName = settings.doctorName.ifBlank { "Doctor" }
+    val doctorContact = settings.doctorContact
+
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        color = Color.White,
+        shadowElevation = 4.dp,
+        shape = RoundedCornerShape(4.dp),
+        border = BorderStroke(1.dp, Color(0xFFE0E6F0)),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            // Document Header
+            Text(
+                text = hospitalName,
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF0F4C81),
+            )
+            Text(
+                text = doctorName,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = Color.Black,
+            )
+            if (doctorContact.isNotBlank()) {
+                Text(
+                    text = doctorContact,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF60708A),
+                )
+            }
+
+            HorizontalDivider(
+                color = Color(0xFF0F4C81),
+                thickness = 1.5.dp,
+            )
+
+            // Report Details
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Color.Black,
+            )
+            Text(
+                text = "Generated ${com.jsmammen.ui.util.formatTimestamp(System.currentTimeMillis())}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF60708A),
+            )
+            Text(
+                text = "Patients: ${patients.size}",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color(0xFF60708A),
+            )
+
+            if (patients.isEmpty()) {
+                Text(
+                    text = "No patients match this criteria.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(vertical = 16.dp),
+                )
+            } else {
+                patients.forEach { patient ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = patient.name,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black,
+                        )
+                        val meta = listOfNotNull(
+                            "UID: ${patient.uid}",
+                            patient.idNumber?.let { "ID: $it" },
+                            patient.ageYears?.let { "Age: $it" },
+                            patient.sex?.takeIf { it.isNotBlank() }?.let { "Sex: $it" },
+                            patient.phone?.takeIf { it.isNotBlank() }?.let { "Phone: $it" },
+                        ).joinToString("   |   ")
+                        Text(
+                            text = meta,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Color(0xFF60708A),
+                        )
+
+                        val visits = if (filters.scope == ReportScope.PATIENTS_ONLY) {
+                            emptyList()
+                        } else {
+                            viewModel.reportVisits(patient, filters, visitsByPatient[patient.id].orEmpty())
+                        }
+
+                        if (visits.isNotEmpty()) {
+                            // Table Container with Horizontal Scroll for Responsive Alignment
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .horizontalScroll(rememberScrollState()),
+                            ) {
+                                Column(modifier = Modifier.widthIn(min = 520.dp)) {
+                                    // Table Header Row
+                                    Surface(
+                                        color = Color(0xFF0F4C81),
+                                        modifier = Modifier.fillMaxWidth(),
+                                    ) {
+                                        Row(
+                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            TableHeaderCell("Date", 1.2f)
+                                            TableHeaderCell("BP (mmHg)", 0.8f)
+                                            TableHeaderCell("Glucose", 1.0f)
+                                            TableHeaderCell("Pulse", 0.6f)
+                                            TableHeaderCell("Temp (°C)", 0.7f)
+                                            TableHeaderCell("SpO2", 0.6f)
+                                            TableHeaderCell("Weight (kg)", 0.9f)
+                                        }
+                                    }
+
+                                    // Table Rows
+                                    visits.forEach { visit ->
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 4.dp, vertical = 6.dp),
+                                            verticalAlignment = Alignment.CenterVertically,
+                                        ) {
+                                            TableCell(com.jsmammen.ui.util.formatTimestamp(visit.recordedAt), 1.2f)
+                                            TableCell(
+                                                if (visit.systolic != null && visit.diastolic != null) "${visit.systolic}/${visit.diastolic}" else "-",
+                                                0.8f,
+                                            )
+                                            TableCell(
+                                                if (visit.glucoseValue != null && visit.glucoseUnit != null) "${formatMetric(visit.glucoseValue)} ${visit.glucoseUnit.label}" else "-",
+                                                1.0f,
+                                            )
+                                            TableCell(visit.pulse?.toString() ?: "-", 0.6f)
+                                            TableCell(visit.temperatureC?.let { formatMetric(it) } ?: "-", 0.7f)
+                                            TableCell(visit.spo2?.let { "$it%" } ?: "-", 0.6f)
+                                            TableCell(visit.weightKg?.let { formatMetric(it) } ?: "-", 0.9f)
+                                        }
+                                        HorizontalDivider(color = Color(0xFFE0E6F0), thickness = 0.5.dp)
+                                    }
+                                }
+                            }
+                        } else if (filters.scope == ReportScope.PATIENTS_AND_VISITS) {
+                            Text(
+                                text = "No visits in this report.",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF60708A),
+                                modifier = Modifier.padding(vertical = 4.dp),
+                            )
+                        }
+
+                        // Visit Notes & Symptoms Section
+                        val visitsWithText = visits.filter { it.symptoms.isNotBlank() || it.notes.isNotBlank() }
+                        if (visitsWithText.isNotEmpty()) {
+                            Text(
+                                text = "Visit notes:",
+                                style = MaterialTheme.typography.bodySmall,
+                                fontWeight = FontWeight.Bold,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                            visitsWithText.forEach { visit ->
+                                Text(
+                                    text = "- ${com.jsmammen.ui.util.formatTimestamp(visit.recordedAt)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.SemiBold,
+                                )
+                                if (visit.symptoms.isNotBlank()) {
+                                    Text(
+                                        text = "  Symptoms: ${visit.symptoms}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                                if (visit.notes.isNotBlank()) {
+                                    Text(
+                                        text = "  Notes: ${visit.notes}",
+                                        style = MaterialTheme.typography.bodySmall,
+                                    )
+                                }
+                            }
+                        }
+
+                        HorizontalDivider(
+                            color = Color(0xFFDCE4F0),
+                            thickness = 0.5.dp,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    }
+                }
+            }
+
+            // PDF Footer
+            HorizontalDivider(
+                color = Color(0xFF0F4C81),
+                thickness = 1.dp,
+                modifier = Modifier.padding(top = 8.dp),
+            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = hospitalName,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF60708A),
+                )
+                Text(
+                    text = "Confidential - Patient Data",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF60708A),
+                )
+                Text(
+                    text = "Page 1",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color(0xFF60708A),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.TableHeaderCell(text: String, weight: Float) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelSmall,
+        fontWeight = FontWeight.Bold,
+        color = Color.White,
+        modifier = Modifier.weight(weight).padding(horizontal = 2.dp),
+    )
+}
+
+@Composable
+private fun RowScope.TableCell(text: String, weight: Float) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = Color.Black,
+        modifier = Modifier.weight(weight).padding(horizontal = 2.dp),
+    )
+}
+
 private fun formatMetric(value: Double): String =
     if (value % 1.0 == 0.0) value.toInt().toString()
-    else String.format(java.util.Locale.getDefault(), "%.1f", value)
-
-private fun reportVitalsSummary(visit: com.jsmammen.data.model.Visit): List<String> = buildList {
-    if (visit.systolic != null && visit.diastolic != null) {
-        add("BP ${visit.systolic}/${visit.diastolic}")
-    }
-    if (visit.glucoseValue != null && visit.glucoseUnit != null) {
-        add("Glu ${formatMetric(visit.glucoseValue)} ${visit.glucoseUnit.label}")
-    }
-    visit.pulse?.let { add("Pulse $it") }
-    visit.temperatureC?.let { add("Temp ${formatMetric(it)}") }
-    visit.spo2?.let { add("SpO2 $it%") }
-    visit.weightKg?.let { add("Wt ${formatMetric(it)}") }
-}
+    else String.format(Locale.getDefault(), "%.1f", value)
 
 private fun ReportType.label(): String = when (this) {
     ReportType.VISITED_ON_DATE -> "Visited on date"

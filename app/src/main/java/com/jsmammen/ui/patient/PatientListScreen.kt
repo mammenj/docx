@@ -8,7 +8,10 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -91,7 +94,7 @@ fun PatientListScreen(
     val context = LocalContext.current
     val clinicSettings = remember { ClinicSettings(context) }
     val backupViewModel: BackupViewModel = viewModel { BackupViewModel(repository) }
-    val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    val prefs = remember(context) { context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE) }
     var showRestoreDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(patients) {
@@ -141,65 +144,91 @@ fun PatientListScreen(
         drawerState = drawerState,
         drawerContent = {
             ModalDrawerSheet {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.LocalHospital,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(40.dp),
-                    )
-                    Column {
-                        Text(
-                            text = clinicSettings.hospitalName.ifBlank { "Outpatient Records" },
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.SemiBold,
+                Column(modifier = Modifier.fillMaxHeight()) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.LocalHospital,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(40.dp),
                         )
-                        if (clinicSettings.doctorName.isNotBlank()) {
+                        Column {
                             Text(
-                                text = "Dr. ${clinicSettings.doctorName}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = clinicSettings.hospitalName.ifBlank { "Outpatient Records" },
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                            )
+                            if (clinicSettings.doctorName.isNotBlank()) {
+                                Text(
+                                    text = "Dr. ${clinicSettings.doctorName}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                    HorizontalDivider()
+                    Text(
+                        text = "Menu",
+                        style = MaterialTheme.typography.titleSmall,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("Reports") },
+                        selected = false,
+                        icon = { Icon(Icons.Default.Description, contentDescription = null) },
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            onReports()
+                        },
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("Clinic details") },
+                        selected = false,
+                        icon = { Icon(Icons.Default.LocalHospital, contentDescription = null) },
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            onSettings()
+                        },
+                    )
+                    NavigationDrawerItem(
+                        label = { Text("Backup & restore") },
+                        selected = false,
+                        icon = { Icon(Icons.Default.Backup, contentDescription = null) },
+                        onClick = {
+                            scope.launch { drawerState.close() }
+                            onBackup()
+                        },
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    HorizontalDivider()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        Text(
+                            text = "Outpatient Records v1.2",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        val uriHandler = LocalUriHandler.current
+                        TextButton(
+                            onClick = { uriHandler.openUri("https://jsonresume.org/@mammenj") },
+                        ) {
+                            Text(
+                                text = "Resume: https://jsonresume.org/@mammenj",
+                                style = MaterialTheme.typography.labelMedium,
                             )
                         }
                     }
                 }
-                HorizontalDivider()
-                Text(
-                    text = "Menu",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                )
-                NavigationDrawerItem(
-                    label = { Text("Reports") },
-                    selected = false,
-                    icon = { Icon(Icons.Default.Description, contentDescription = null) },
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onReports()
-                    },
-                )
-                NavigationDrawerItem(
-                    label = { Text("Clinic details") },
-                    selected = false,
-                    icon = { Icon(Icons.Default.LocalHospital, contentDescription = null) },
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onSettings()
-                    },
-                )
-                NavigationDrawerItem(
-                    label = { Text("Backup & restore") },
-                    selected = false,
-                    icon = { Icon(Icons.Default.Backup, contentDescription = null) },
-                    onClick = {
-                        scope.launch { drawerState.close() }
-                        onBackup()
-                    },
-                )
             }
         },
     ) {
