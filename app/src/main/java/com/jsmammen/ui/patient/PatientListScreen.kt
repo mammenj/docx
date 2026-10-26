@@ -214,7 +214,7 @@ fun PatientListScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = "Outpatient Records v1.2",
+                            text = "Outpatient Records v1.3",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

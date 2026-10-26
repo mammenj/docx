@@ -111,13 +111,13 @@ fun ClinicDetailsScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Outpatient Records v1.2",
+                    text = "Outpatient Records v1.3",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 val uriHandler = LocalUriHandler.current
                 TextButton(onClick = { uriHandler.openUri("https://jsonresume.org/@mammenj") }) {
-                    Text("Developer Resume: https://jsonresume.org/@mammenj")
+                    Text("For Support: @mammenj")
                 }
             }
         }
