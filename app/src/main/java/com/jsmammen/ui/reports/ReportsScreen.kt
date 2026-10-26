@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -58,6 +59,7 @@ import com.jsmammen.ui.rememberRepository
 import kotlinx.coroutines.launch
 import java.util.Locale
 
+@Preview(showBackground = true)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportsScreen(
@@ -415,7 +417,7 @@ private fun PdfDocumentPreview(
                                     .fillMaxWidth()
                                     .horizontalScroll(rememberScrollState()),
                             ) {
-                                Column(modifier = Modifier.widthIn(min = 520.dp)) {
+                                Column {
                                     // Table Header Row
                                     Surface(
                                         color = Color(0xFF0F4C81),
@@ -425,13 +427,13 @@ private fun PdfDocumentPreview(
                                             modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            TableHeaderCell("Date", 1.2f)
-                                            TableHeaderCell("BP (mmHg)", 0.8f)
-                                            TableHeaderCell("Glucose", 1.0f)
-                                            TableHeaderCell("Pulse", 0.6f)
-                                            TableHeaderCell("Temp (°C)", 0.7f)
-                                            TableHeaderCell("SpO2", 0.6f)
-                                            TableHeaderCell("Weight (kg)", 0.9f)
+                                            TableHeaderCell("Date", 110.dp)
+                                            TableHeaderCell("BP (mmHg)", 75.dp)
+                                            TableHeaderCell("Glucose", 85.dp)
+                                            TableHeaderCell("Pulse", 55.dp)
+                                            TableHeaderCell("Temp (°C)", 65.dp)
+                                            TableHeaderCell("SpO2", 55.dp)
+                                            TableHeaderCell("Weight (kg)", 80.dp)
                                         }
                                     }
 
@@ -443,19 +445,19 @@ private fun PdfDocumentPreview(
                                                 .padding(horizontal = 4.dp, vertical = 6.dp),
                                             verticalAlignment = Alignment.CenterVertically,
                                         ) {
-                                            TableCell(com.jsmammen.ui.util.formatTimestamp(visit.recordedAt), 1.2f)
+                                            TableCell(com.jsmammen.ui.util.formatTimestamp(visit.recordedAt), 110.dp)
                                             TableCell(
                                                 if (visit.systolic != null && visit.diastolic != null) "${visit.systolic}/${visit.diastolic}" else "-",
-                                                0.8f,
+                                                75.dp,
                                             )
                                             TableCell(
                                                 if (visit.glucoseValue != null && visit.glucoseUnit != null) "${formatMetric(visit.glucoseValue)} ${visit.glucoseUnit.label}" else "-",
-                                                1.0f,
+                                                85.dp,
                                             )
-                                            TableCell(visit.pulse?.toString() ?: "-", 0.6f)
-                                            TableCell(visit.temperatureC?.let { formatMetric(it) } ?: "-", 0.7f)
-                                            TableCell(visit.spo2?.let { "$it%" } ?: "-", 0.6f)
-                                            TableCell(visit.weightKg?.let { formatMetric(it) } ?: "-", 0.9f)
+                                            TableCell(visit.pulse?.toString() ?: "-", 55.dp)
+                                            TableCell(visit.temperatureC?.let { formatMetric(it) } ?: "-", 65.dp)
+                                            TableCell(visit.spo2?.let { "$it%" } ?: "-", 55.dp)
+                                            TableCell(visit.weightKg?.let { formatMetric(it) } ?: "-", 80.dp)
                                         }
                                         HorizontalDivider(color = Color(0xFFE0E6F0), thickness = 0.5.dp)
                                     }
@@ -540,23 +542,23 @@ private fun PdfDocumentPreview(
 }
 
 @Composable
-private fun RowScope.TableHeaderCell(text: String, weight: Float) {
+private fun TableHeaderCell(text: String, width: androidx.compose.ui.unit.Dp) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelSmall,
         fontWeight = FontWeight.Bold,
         color = Color.White,
-        modifier = Modifier.weight(weight).padding(horizontal = 2.dp),
+        modifier = Modifier.width(width).padding(horizontal = 2.dp),
     )
 }
 
 @Composable
-private fun RowScope.TableCell(text: String, weight: Float) {
+private fun TableCell(text: String, width: androidx.compose.ui.unit.Dp) {
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,
         color = Color.Black,
-        modifier = Modifier.weight(weight).padding(horizontal = 2.dp),
+        modifier = Modifier.width(width).padding(horizontal = 2.dp),
     )
 }
 
