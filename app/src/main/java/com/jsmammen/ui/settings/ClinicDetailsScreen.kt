@@ -111,7 +111,7 @@ fun ClinicDetailsScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Outpatient Records v1.4",
+                    text = "Outpatient Records v1.5",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
