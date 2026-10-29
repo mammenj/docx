@@ -1,6 +1,8 @@
 package com.jsmammen.ui.visit
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +15,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -27,16 +30,24 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.jsmammen.ui.components.AppScaffold
 import com.jsmammen.ui.rememberRepository
 import com.jsmammen.ui.util.formatTimestamp
 import java.util.Locale
@@ -56,7 +67,7 @@ fun VisitDetailScreen(
     val newNote by viewModel.newNote.collectAsStateWithLifecycle()
     val saving by viewModel.saving.collectAsStateWithLifecycle()
 
-    AppScaffold(
+    Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Visit details") },
@@ -150,16 +161,36 @@ fun VisitDetailScreen(
                     currentVisit.photoPath?.let { path ->
                         val file = java.io.File(path)
                         if (file.exists()) {
-                            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
-                            bitmap?.let {
-                                Card(modifier = Modifier.fillMaxWidth()) {
-                                    Image(
-                                        bitmap = it,
-                                        contentDescription = "Visit photo",
+                            val bitmap = remember(path) {
+                                android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+                            }
+                            bitmap?.let { bm ->
+                                var showFullScreen by remember { mutableStateOf(false) }
+                                Card(
+                                    onClick = { showFullScreen = true },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .heightIn(max = 360.dp),
-                                        contentScale = ContentScale.Fit,
+                                            .padding(8.dp),
+                                        contentAlignment = Alignment.Center,
+                                    ) {
+                                        Image(
+                                            bitmap = bm,
+                                            contentDescription = "Visit photo (Tap to view full screen)",
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .heightIn(max = 360.dp),
+                                            contentScale = ContentScale.Fit,
+                                        )
+                                    }
+                                }
+
+                                if (showFullScreen) {
+                                    FullScreenImageDialog(
+                                        bitmap = bm,
+                                        onDismiss = { showFullScreen = false },
                                     )
                                 }
                             }
@@ -260,3 +291,65 @@ private fun formatMetric(value: Double): String =
     } else {
         String.format(Locale.getDefault(), "%.1f", value)
     }
+
+@Composable
+private fun FullScreenImageDialog(
+    bitmap: androidx.compose.ui.graphics.ImageBitmap,
+    onDismiss: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Black),
+            contentAlignment = Alignment.Center,
+        ) {
+            var scale by remember { mutableFloatStateOf(1f) }
+            var offsetX by remember { mutableFloatStateOf(0f) }
+            var offsetY by remember { mutableFloatStateOf(0f) }
+
+            Image(
+                bitmap = bitmap,
+                contentDescription = "Full screen visit photo",
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer(
+                        scaleX = scale,
+                        scaleY = scale,
+                        translationX = offsetX,
+                        translationY = offsetY,
+                    )
+                    .pointerInput(Unit) {
+                        detectTransformGestures { _, pan, zoom, _ ->
+                            scale = (scale * zoom).coerceIn(1f, 5f)
+                            if (scale > 1f) {
+                                offsetX += pan.x
+                                offsetY += pan.y
+                            } else {
+                                offsetX = 0f
+                                offsetY = 0f
+                            }
+                        }
+                    },
+                contentScale = ContentScale.Fit,
+            )
+
+            IconButton(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(16.dp)
+                    .background(Color.Black.copy(alpha = 0.5f), androidx.compose.foundation.shape.CircleShape),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Close,
+                    contentDescription = "Close",
+                    tint = Color.White,
+                )
+            }
+        }
+    }
+}

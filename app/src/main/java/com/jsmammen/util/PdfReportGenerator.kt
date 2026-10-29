@@ -198,13 +198,15 @@ object PdfReportGenerator {
                         if (file.exists()) {
                             val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
                             if (bitmap != null) {
-                                val maxW = 110f
-                                val scale = minOf(maxW / bitmap.width, maxW / bitmap.height, 1f)
+                                val maxW = maxWidth * 0.75f
+                                val maxH = 280f
+                                val scale = minOf(maxW / bitmap.width, maxH / bitmap.height, 1f)
                                 val w = bitmap.width * scale
                                 val h = bitmap.height * scale
-                                ensureSpace(h + 8f)
-                                y += 4f
-                                val rect = android.graphics.RectF(margin + 8f, y, margin + 8f + w, y + h)
+                                ensureSpace(h + 12f)
+                                y += 6f
+                                val left = margin + (maxWidth - w) / 2f
+                                val rect = android.graphics.RectF(left, y, left + w, y + h)
                                 canvas.drawBitmap(bitmap, null, rect, null)
                                 y += h + 8f
                             }
