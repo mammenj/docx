@@ -106,13 +106,20 @@ fun ClinicDetailsScreen(onBack: () -> Unit) {
                 )
             }
             HorizontalDivider(modifier = Modifier.padding(top = 12.dp))
+            val versionName = remember(context) {
+                try {
+                    context.packageManager.getPackageInfo(context.packageName, 0).versionName ?: "1.9"
+                } catch (_: Exception) {
+                    "1.9"
+                }
+            }
             Column(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Outpatient Records v1.8",
+                    text = "Outpatient Records v$versionName",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

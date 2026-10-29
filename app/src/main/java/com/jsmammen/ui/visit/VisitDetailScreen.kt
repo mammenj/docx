@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -157,8 +158,8 @@ fun VisitDetailScreen(
                                         contentDescription = "Visit photo",
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .size(240.dp),
-                                        contentScale = ContentScale.Crop,
+                                            .heightIn(max = 360.dp),
+                                        contentScale = ContentScale.Fit,
                                     )
                                 }
                             }

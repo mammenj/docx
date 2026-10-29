@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.Card
@@ -47,8 +48,8 @@ fun VisitCard(
                     contentDescription = "Visit photo",
                     modifier = Modifier
                         .fillMaxWidth()
-                        .size(96.dp),
-                    contentScale = ContentScale.Crop,
+                        .heightIn(max = 180.dp),
+                    contentScale = ContentScale.Fit,
                 )
             }
             Text(

@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
@@ -513,8 +514,10 @@ private fun PdfDocumentPreview(
                                             Image(
                                                 bitmap = it,
                                                 contentDescription = "Visit photo",
-                                                modifier = Modifier.size(80.dp),
-                                                contentScale = ContentScale.Crop,
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .heightIn(max = 160.dp),
+                                                contentScale = ContentScale.Fit,
                                             )
                                         }
                                     }
