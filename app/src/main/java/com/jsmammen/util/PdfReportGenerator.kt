@@ -178,16 +178,37 @@ object PdfReportGenerator {
             }
 
             // Notes and symptoms below the table
-            val visitsWithText = visits.filter { it.symptoms.isNotBlank() || it.notes.isNotBlank() }
-            if (visitsWithText.isNotEmpty()) {
-                drawWrapped("Visit notes:", bold)
-                visitsWithText.forEach { visit ->
-                    drawWrapped("- ${formatTimestamp(visit.recordedAt)}", bold, 4f)
+            val visitsToDetail = visits
+            if (visitsToDetail.isNotEmpty()) {
+                drawWrapped("Visit details:", bold)
+                visitsToDetail.forEach { visit ->
+                    drawWrapped("- ${formatTimestamp(visit.recordedAt)} (Department: ${visit.department})", bold, 4f)
                     if (visit.symptoms.isNotBlank()) {
                         drawWrapped("  Symptoms: ${visit.symptoms}", paint, 4f)
                     }
                     if (visit.notes.isNotBlank()) {
                         drawWrapped("  Notes: ${visit.notes}", paint, 4f)
+                    }
+                    val vitals = vitalsSummary(visit)
+                    if (vitals.isNotEmpty()) {
+                        drawWrapped("  Vitals: ${vitals.joinToString(", ")}", paint, 4f)
+                    }
+                    visit.photoPath?.let { path ->
+                        val file = File(path)
+                        if (file.exists()) {
+                            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)
+                            if (bitmap != null) {
+                                val maxW = 110f
+                                val scale = minOf(maxW / bitmap.width, maxW / bitmap.height, 1f)
+                                val w = bitmap.width * scale
+                                val h = bitmap.height * scale
+                                ensureSpace(h + 8f)
+                                y += 4f
+                                val rect = android.graphics.RectF(margin + 8f, y, margin + 8f + w, y + h)
+                                canvas.drawBitmap(bitmap, null, rect, null)
+                                y += h + 8f
+                            }
+                        }
                     }
                 }
             }

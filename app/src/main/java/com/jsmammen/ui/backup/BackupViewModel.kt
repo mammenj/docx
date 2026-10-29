@@ -64,7 +64,17 @@ class BackupViewModel(
                 val patientsJson = json.getJSONArray("patients")
                 val visitsJson = json.getJSONArray("visits")
                 val patients = (0 until patientsJson.length()).map { patientsJson.getJSONObject(it).toPatient() }
-                val visits = (0 until visitsJson.length()).map { visitsJson.getJSONObject(it).toVisit() }
+                val visits = (0 until visitsJson.length()).map { index ->
+                    val obj = visitsJson.getJSONObject(index)
+                    val visit = obj.toVisit()
+                    if (obj.isNull("photoBase64")) {
+                        visit
+                    } else {
+                        val bytes = android.util.Base64.decode(obj.getString("photoBase64"), android.util.Base64.DEFAULT)
+                        val path = savePhotoBytes(context, bytes)
+                        visit.copy(photoPath = path)
+                    }
+                }
                 repository.importAll(patients, visits)
                 (context.applicationContext as OutpatientApp).autoBackupManager.suppressNextBackup()
                 _status.value = "Imported ${patients.size} patients and ${visits.size} visits."
@@ -101,6 +111,7 @@ class BackupViewModel(
         put("id", id)
         put("patientId", patientId)
         put("recordedAt", recordedAt)
+        put("department", department)
         put("symptoms", symptoms)
         put("notes", notes)
         put("systolic", systolic ?: JSONObject.NULL)
@@ -111,6 +122,12 @@ class BackupViewModel(
         put("temperatureC", temperatureC ?: JSONObject.NULL)
         put("spo2", spo2 ?: JSONObject.NULL)
         put("weightKg", weightKg ?: JSONObject.NULL)
+        put("photoPath", photoPath ?: JSONObject.NULL)
+        val photoBase64 = photoPath?.let { path ->
+            val file = java.io.File(path)
+            if (file.exists()) android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP) else null
+        }
+        put("photoBase64", photoBase64 ?: JSONObject.NULL)
     }
 
     private fun JSONObject.toPatient(): Patient = Patient(
@@ -130,6 +147,7 @@ class BackupViewModel(
         id = getLong("id"),
         patientId = getLong("patientId"),
         recordedAt = getLong("recordedAt"),
+        department = if (isNull("department")) "General Medicine" else getString("department"),
         symptoms = getString("symptoms"),
         notes = getString("notes"),
         systolic = if (isNull("systolic")) null else getInt("systolic"),
@@ -140,5 +158,17 @@ class BackupViewModel(
         temperatureC = if (isNull("temperatureC")) null else getDouble("temperatureC"),
         spo2 = if (isNull("spo2")) null else getInt("spo2"),
         weightKg = if (isNull("weightKg")) null else getDouble("weightKg"),
+        photoPath = if (isNull("photoPath")) null else getString("photoPath"),
     )
+
+    private fun savePhotoBytes(context: Context, bytes: ByteArray): String? {
+        return try {
+            val dir = java.io.File(context.filesDir, "visit_photos").apply { mkdirs() }
+            val file = java.io.File(dir, "photo_${System.currentTimeMillis()}.jpg")
+            file.writeBytes(bytes)
+            file.absolutePath
+        } catch (e: Exception) {
+            null
+        }
+    }
 }

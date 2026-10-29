@@ -2,7 +2,8 @@ package com.jsmammen.ui.reports
 
 import android.content.Intent
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.Image
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -11,7 +12,9 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
@@ -48,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -483,7 +487,7 @@ private fun PdfDocumentPreview(
                             )
                             visitsWithText.forEach { visit ->
                                 Text(
-                                    text = "- ${com.jsmammen.ui.util.formatTimestamp(visit.recordedAt)}",
+                                    text = "- ${com.jsmammen.ui.util.formatTimestamp(visit.recordedAt)}  (Department: ${visit.department})",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.SemiBold,
                                 )
@@ -498,6 +502,20 @@ private fun PdfDocumentPreview(
                                         text = "  Notes: ${visit.notes}",
                                         style = MaterialTheme.typography.bodySmall,
                                     )
+                                }
+                                visit.photoPath?.let { path ->
+                                    val file = java.io.File(path)
+                                    if (file.exists()) {
+                                        val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+                                        bitmap?.let {
+                                            Image(
+                                                bitmap = it,
+                                                contentDescription = "Visit photo",
+                                                modifier = Modifier.size(80.dp),
+                                                contentScale = ContentScale.Crop,
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }

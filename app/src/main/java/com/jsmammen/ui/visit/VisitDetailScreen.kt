@@ -1,5 +1,6 @@
 package com.jsmammen.ui.visit
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,8 +26,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -105,6 +109,11 @@ fun VisitDetailScreen(
                                 text = formatTimestamp(currentVisit.recordedAt),
                                 style = MaterialTheme.typography.bodyLarge,
                             )
+                            Text(
+                                text = "Department: ${currentVisit.department}",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
                         }
                     }
 
@@ -129,6 +138,25 @@ fun VisitDetailScreen(
                                     Text(
                                         text = "$label: $value",
                                         style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    currentVisit.photoPath?.let { path ->
+                        val file = java.io.File(path)
+                        if (file.exists()) {
+                            val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+                            bitmap?.let {
+                                Card(modifier = Modifier.fillMaxWidth()) {
+                                    Image(
+                                        bitmap = it,
+                                        contentDescription = "Visit photo",
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .size(240.dp),
+                                        contentScale = ContentScale.Crop,
                                     )
                                 }
                             }

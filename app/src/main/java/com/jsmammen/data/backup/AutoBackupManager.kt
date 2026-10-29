@@ -74,6 +74,7 @@ class AutoBackupManager(
         put("id", id)
         put("patientId", patientId)
         put("recordedAt", recordedAt)
+        put("department", department)
         put("symptoms", symptoms)
         put("notes", notes)
         put("systolic", systolic ?: JSONObject.NULL)
@@ -84,5 +85,11 @@ class AutoBackupManager(
         put("temperatureC", temperatureC ?: JSONObject.NULL)
         put("spo2", spo2 ?: JSONObject.NULL)
         put("weightKg", weightKg ?: JSONObject.NULL)
+        put("photoPath", photoPath ?: JSONObject.NULL)
+        val photoBase64 = photoPath?.let { path ->
+            val file = java.io.File(path)
+            if (file.exists()) android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP) else null
+        }
+        put("photoBase64", photoBase64 ?: JSONObject.NULL)
     }
 }

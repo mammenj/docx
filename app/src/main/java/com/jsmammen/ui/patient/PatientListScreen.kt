@@ -90,6 +90,7 @@ fun PatientListScreen(
     }
     val patients by viewModel.patients.collectAsStateWithLifecycle()
     val query by viewModel.query.collectAsStateWithLifecycle()
+    val visitsByPatient by viewModel.visitsByPatient.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
     val clinicSettings = remember { ClinicSettings(context) }
@@ -214,7 +215,7 @@ fun PatientListScreen(
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Text(
-                            text = "Outpatient Records v1.5",
+                            text = "Outpatient Records v1.6",
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -285,7 +286,7 @@ fun PatientListScreen(
                 OutlinedTextField(
                     value = query,
                     onValueChange = viewModel::onQueryChange,
-                    label = { Text("Search name or UID") },
+                    label = { Text("Search patients or visits") },
                     leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
                     singleLine = true,
                     modifier = Modifier
@@ -335,6 +336,8 @@ fun PatientListScreen(
                         items(patients, key = { it.id }) { patient ->
                             PatientCard(
                                 patient = patient,
+                                visits = visitsByPatient[patient.id].orEmpty(),
+                                query = query,
                                 onClick = { onPatientClick(patient.id) },
                             )
                         }
@@ -348,62 +351,87 @@ fun PatientListScreen(
 @Composable
 private fun PatientCard(
     patient: Patient,
+    visits: List<com.jsmammen.data.model.Visit>,
+    query: String,
     onClick: () -> Unit,
 ) {
     ElevatedCard(
         onClick = onClick,
         modifier = Modifier.fillMaxWidth(),
     ) {
-        Row(
-            modifier = Modifier.padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primaryContainer),
-                contentAlignment = Alignment.Center,
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
-                Text(
-                    text = patient.name.take(1).uppercase(),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                    fontWeight = FontWeight.SemiBold,
-                )
-            }
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = patient.name,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = "UID ${patient.uid}",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                val details = listOfNotNull(
-                    patient.idNumber?.let { "ID $it" },
-                    patient.ageYears?.let { "$it yrs" },
-                    patient.sex?.takeIf { it.isNotBlank() },
-                )
-                if (details.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primaryContainer),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Text(
-                        text = details.joinToString("  ·  "),
+                        text = patient.name.take(1).uppercase(),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onPrimaryContainer,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = patient.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = "UID ${patient.uid}",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                    val details = listOfNotNull(
+                        patient.idNumber?.let { "ID $it" },
+                        patient.ageYears?.let { "$it yrs" },
+                        patient.sex?.takeIf { it.isNotBlank() },
+                    )
+                    if (details.isNotEmpty()) {
+                        Text(
+                            text = details.joinToString("  ·  "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            val matchingVisits = if (query.isNotBlank()) {
+                visits.filter { visit -> /* reuse simple match */ visit.symptoms.contains(query, true) || visit.notes.contains(query, true) || visit.department.contains(query, true) }
+            } else {
+                emptyList()
+            }
+            if (matchingVisits.isNotEmpty()) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    matchingVisits.take(3).forEach { visit ->
+                        Text(
+                            text = "${com.jsmammen.ui.util.formatTimestamp(visit.recordedAt)} - " +
+                                listOfNotNull(
+                                    if (visit.systolic != null && visit.diastolic != null) "BP ${visit.systolic}/${visit.diastolic}" else null,
+                                    visit.glucoseValue?.let { "Glu $it" },
+                                    visit.symptoms.takeIf { it.isNotBlank() },
+                                ).joinToString("  ·  "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary,
+                        )
+                    }
                 }
             }
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
         }
     }
 }

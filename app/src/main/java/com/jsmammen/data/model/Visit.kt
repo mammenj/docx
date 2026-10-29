@@ -21,6 +21,8 @@ data class Visit(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val patientId: Long,
     val recordedAt: Long,
+    val department: String = "General Medicine",
+    val photoPath: String? = null,
     val symptoms: String = "",
     val notes: String = "",
     val systolic: Int? = null,

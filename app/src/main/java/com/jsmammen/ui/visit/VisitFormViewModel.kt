@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 data class VisitFormState(
     val symptoms: String = "",
     val notes: String = "",
+    val department: String = "General Medicine",
+    val photoPath: String? = null,
     val systolic: String = "",
     val diastolic: String = "",
     val glucoseValue: String = "",
@@ -40,6 +42,10 @@ class VisitFormViewModel(
     fun onSymptomsChange(value: String) = _state.update { it.copy(symptoms = value) }
 
     fun onNotesChange(value: String) = _state.update { it.copy(notes = value) }
+
+    fun onDepartmentChange(value: String) = _state.update { it.copy(department = value) }
+
+    fun onPhotoChange(path: String?) = _state.update { it.copy(photoPath = path) }
 
     fun onSystolicChange(value: String) =
         _state.update { it.copy(systolic = value, errors = it.errors.copy(systolic = null)) }
@@ -90,6 +96,8 @@ class VisitFormViewModel(
                 Visit(
                     patientId = patientId,
                     recordedAt = System.currentTimeMillis(),
+                    department = current.department.trim().ifBlank { "General Medicine" },
+                    photoPath = current.photoPath,
                     symptoms = current.symptoms.trim(),
                     notes = current.notes.trim(),
                     systolic = current.systolic.trim().toIntOrNull(),
