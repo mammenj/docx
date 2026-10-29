@@ -28,6 +28,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jsmammen.ui.components.AppScaffold
 import com.jsmammen.ui.rememberRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,7 +46,7 @@ fun PatientFormScreen(
         if (state.saved) onDone()
     }
 
-    Scaffold(
+    AppScaffold(
         topBar = {
             TopAppBar(
                 title = { Text("New patient") },

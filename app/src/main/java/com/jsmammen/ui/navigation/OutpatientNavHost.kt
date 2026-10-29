@@ -1,6 +1,7 @@
 package com.jsmammen.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -43,10 +44,11 @@ private const val PATIENT_ID_ARG = "patientId"
 fun OutpatientNavHost(
     navController: NavHostController = rememberNavController(),
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = Routes.PATIENT_LIST,
-    ) {
+    CompositionLocalProvider(LocalNavController provides navController) {
+        NavHost(
+            navController = navController,
+            startDestination = Routes.PATIENT_LIST,
+        ) {
         composable(Routes.PATIENT_LIST) {
             PatientListScreen(
                 onAddPatient = { navController.navigate(Routes.NEW_PATIENT) },
@@ -111,5 +113,6 @@ fun OutpatientNavHost(
         composable(Routes.BACKUP) {
             BackupScreen(onBack = { navController.popBackStack() })
         }
+    }
     }
 }

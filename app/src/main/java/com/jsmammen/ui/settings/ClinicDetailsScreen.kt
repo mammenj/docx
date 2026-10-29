@@ -18,6 +18,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import com.jsmammen.ui.components.AppScaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -43,7 +44,7 @@ fun ClinicDetailsScreen(onBack: () -> Unit) {
     var hospitalName by remember { mutableStateOf(settings.hospitalName) }
     var saved by remember { mutableStateOf(false) }
 
-    Scaffold(
+    AppScaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Clinic details") },
@@ -111,7 +112,7 @@ fun ClinicDetailsScreen(onBack: () -> Unit) {
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
                 Text(
-                    text = "Outpatient Records v1.6",
+                    text = "Outpatient Records v1.8",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

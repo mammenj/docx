@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jsmammen.ui.components.AppScaffold
 import com.jsmammen.ui.rememberRepository
 import com.jsmammen.ui.util.VoiceInputButton
 import java.io.File
@@ -77,7 +78,7 @@ fun VisitFormScreen(
         if (state.saved) onDone()
     }
 
-    Scaffold(
+    AppScaffold(
         topBar = {
             TopAppBar(
                 title = { Text("New visit") },

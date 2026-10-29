@@ -59,6 +59,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsmammen.data.model.Patient
 import com.jsmammen.data.model.Visit
 import com.jsmammen.data.settings.ClinicSettings
+import com.jsmammen.ui.components.AppBottomBar
 import com.jsmammen.ui.rememberRepository
 import kotlinx.coroutines.launch
 import java.util.Locale
@@ -118,6 +119,7 @@ fun ReportsScreen(
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = { AppBottomBar() },
     ) { padding ->
         LazyColumn(
             modifier = Modifier

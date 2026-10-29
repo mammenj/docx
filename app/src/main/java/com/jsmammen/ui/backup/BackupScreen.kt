@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jsmammen.ui.components.AppBottomBar
 import com.jsmammen.ui.rememberRepository
 import kotlinx.coroutines.launch
 
@@ -88,6 +89,7 @@ fun BackupScreen(onBack: () -> Unit) {
             )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) },
+        bottomBar = { AppBottomBar() },
     ) { padding ->
         Column(
             modifier = Modifier

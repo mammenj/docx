@@ -12,6 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,6 +35,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jsmammen.ui.components.AppScaffold
 import com.jsmammen.ui.rememberRepository
 import com.jsmammen.ui.util.formatTimestamp
 import java.util.Locale
@@ -53,7 +55,7 @@ fun VisitDetailScreen(
     val newNote by viewModel.newNote.collectAsStateWithLifecycle()
     val saving by viewModel.saving.collectAsStateWithLifecycle()
 
-    Scaffold(
+    AppScaffold(
         topBar = {
             TopAppBar(
                 title = { Text("Visit details") },
@@ -207,13 +209,21 @@ fun VisitDetailScreen(
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
                             )
-                            OutlinedTextField(
-                                value = newNote,
-                                onValueChange = viewModel::onNewNoteChange,
-                                label = { Text("Additional note") },
-                                minLines = 3,
+                            Row(
                                 modifier = Modifier.fillMaxWidth(),
-                            )
+                                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            ) {
+                                OutlinedTextField(
+                                    value = newNote,
+                                    onValueChange = viewModel::onNewNoteChange,
+                                    label = { Text("Additional note") },
+                                    minLines = 3,
+                                    modifier = Modifier.weight(1f),
+                                )
+                                com.jsmammen.ui.util.VoiceInputButton { text ->
+                                    viewModel.onNewNoteChange(newNote + " " + text)
+                                }
+                            }
                             Button(
                                 onClick = viewModel::addNote,
                                 enabled = newNote.isNotBlank() && !saving,

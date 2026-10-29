@@ -36,6 +36,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jsmammen.data.model.Patient
 import com.jsmammen.ui.components.VisitCard
+import com.jsmammen.ui.components.AppScaffold
 import com.jsmammen.ui.rememberRepository
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -55,7 +56,7 @@ fun PatientDetailScreen(
     val visits by viewModel.visits.collectAsStateWithLifecycle()
     val loading by viewModel.loading.collectAsStateWithLifecycle()
 
-    Scaffold(
+    AppScaffold(
         topBar = {
             TopAppBar(
                 title = { Text(patient?.name ?: "Patient") },
