@@ -158,40 +158,50 @@ fun VisitDetailScreen(
                         }
                     }
 
-                    currentVisit.photoPath?.let { path ->
-                        val file = java.io.File(path)
-                        if (file.exists()) {
-                            val bitmap = remember(path) {
-                                android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
-                            }
-                            bitmap?.let { bm ->
-                                var showFullScreen by remember { mutableStateOf(false) }
-                                Card(
-                                    onClick = { showFullScreen = true },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(8.dp),
-                                        contentAlignment = Alignment.Center,
+                    val paths = currentVisit.photoPaths.ifEmpty {
+                        currentVisit.photoPath?.let { listOf(it) } ?: emptyList()
+                    }
+                    if (paths.isNotEmpty()) {
+                        Text(
+                            text = "Photos (${paths.size})",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        paths.forEach { path ->
+                            val file = java.io.File(path)
+                            if (file.exists()) {
+                                val bitmap = remember(path) {
+                                    android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+                                }
+                                bitmap?.let { bm ->
+                                    var showFullScreen by remember { mutableStateOf(false) }
+                                    Card(
+                                        onClick = { showFullScreen = true },
+                                        modifier = Modifier.fillMaxWidth(),
                                     ) {
-                                        Image(
-                                            bitmap = bm,
-                                            contentDescription = "Visit photo (Tap to view full screen)",
+                                        Box(
                                             modifier = Modifier
                                                 .fillMaxWidth()
-                                                .heightIn(max = 360.dp),
-                                            contentScale = ContentScale.Fit,
+                                                .padding(8.dp),
+                                            contentAlignment = Alignment.Center,
+                                        ) {
+                                            Image(
+                                                bitmap = bm,
+                                                contentDescription = "Visit photo (Tap to view full screen)",
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .heightIn(max = 360.dp),
+                                                contentScale = ContentScale.Fit,
+                                            )
+                                        }
+                                    }
+
+                                    if (showFullScreen) {
+                                        FullScreenImageDialog(
+                                            bitmap = bm,
+                                            onDismiss = { showFullScreen = false },
                                         )
                                     }
-                                }
-
-                                if (showFullScreen) {
-                                    FullScreenImageDialog(
-                                        bitmap = bm,
-                                        onDismiss = { showFullScreen = false },
-                                    )
                                 }
                             }
                         }

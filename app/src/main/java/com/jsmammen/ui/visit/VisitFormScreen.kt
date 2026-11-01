@@ -5,7 +5,9 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -13,31 +15,40 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.core.content.FileProvider
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jsmammen.data.model.GlucoseUnit
 import com.jsmammen.ui.components.AppScaffold
 import com.jsmammen.ui.rememberRepository
 import com.jsmammen.ui.util.VoiceInputButton
@@ -57,10 +68,11 @@ fun VisitFormScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
-    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        uri?.let { selected ->
-            val path = copyImageToAppStorage(context, selected)
-            viewModel.onPhotoChange(path)
+    val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        uris.forEach { uri ->
+            copyImageToAppStorage(context, uri)?.let { path ->
+                viewModel.onPhotoAdd(path)
+            }
         }
     }
 
@@ -70,11 +82,11 @@ fun VisitFormScreen(
     }
     val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
         if (success) {
-            viewModel.onPhotoChange(cameraFile.absolutePath)
+            viewModel.onPhotoAdd(cameraFile.absolutePath)
         }
     }
 
-    androidx.compose.runtime.LaunchedEffect(state.saved) {
+    LaunchedEffect(state.saved) {
         if (state.saved) onDone()
     }
 
@@ -93,7 +105,7 @@ fun VisitFormScreen(
                 .fillMaxSize()
                 .padding(padding)
                 .imePadding()
-                .verticalScroll(androidx.compose.foundation.rememberScrollState())
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -112,7 +124,7 @@ fun VisitFormScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Symptoms", style = MaterialTheme.typography.titleSmall)
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = state.symptoms,
                         onValueChange = viewModel::onSymptomsChange,
@@ -125,7 +137,7 @@ fun VisitFormScreen(
 
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("Notes / diagnosis", style = MaterialTheme.typography.titleSmall)
-                Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(
                         value = state.notes,
                         onValueChange = viewModel::onNotesChange,
@@ -170,8 +182,8 @@ fun VisitFormScreen(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                com.jsmammen.data.model.GlucoseUnit.entries.forEach { unit ->
-                    androidx.compose.material3.FilterChip(
+                GlucoseUnit.entries.forEach { unit ->
+                    FilterChip(
                         selected = state.glucoseUnit == unit,
                         onClick = { viewModel.onGlucoseUnitChange(unit) },
                         label = { Text(unit.label) },
@@ -228,27 +240,47 @@ fun VisitFormScreen(
                 )
             }
 
-            Text("Photo (optional)", style = MaterialTheme.typography.titleSmall)
+            Text("Photos (optional)", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { galleryLauncher.launch("image/*") }) {
-                    Text("Gallery")
+                    Text("Add from Gallery")
                 }
                 Button(onClick = { cameraLauncher.launch(cameraUri) }) {
-                    Text("Camera")
+                    Text("Take Photo")
                 }
             }
-            state.photoPath?.let { path ->
-                val bitmap = remember(path) {
-                    android.graphics.BitmapFactory.decodeFile(path)?.asImageBitmap()
-                }
-                bitmap?.let {
-                    Image(
-                        bitmap = it,
-                        contentDescription = "Visit photo",
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .size(200.dp),
-                    )
+
+            if (state.photoPaths.isNotEmpty()) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(state.photoPaths, key = { it }) { path ->
+                        val bitmap = remember(path) {
+                            android.graphics.BitmapFactory.decodeFile(path)?.asImageBitmap()
+                        }
+                        bitmap?.let { bm ->
+                            Box(modifier = Modifier.size(100.dp)) {
+                                Image(
+                                    bitmap = bm,
+                                    contentDescription = "Visit photo",
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop,
+                                )
+                                IconButton(
+                                    onClick = { viewModel.onPhotoRemove(path) },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .size(28.dp)
+                                        .background(Color.Black.copy(alpha = 0.6f), CircleShape),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Remove photo",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
@@ -287,7 +319,7 @@ private fun VitalField(
 private fun copyImageToAppStorage(context: Context, uri: Uri): String? {
     return try {
         val dir = File(context.filesDir, "visit_photos").apply { mkdirs() }
-        val file = File(dir, "photo_${System.currentTimeMillis()}.jpg")
+        val file = File(dir, "photo_${System.currentTimeMillis()}_${(0..999).random()}.jpg")
         context.contentResolver.openInputStream(uri)?.use { input ->
             FileOutputStream(file).use { output -> input.copyTo(output) }
         }

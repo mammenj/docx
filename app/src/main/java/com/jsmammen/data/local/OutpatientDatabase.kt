@@ -12,7 +12,7 @@ import com.jsmammen.data.model.Visit
 
 @Database(
     entities = [Patient::class, Visit::class],
-    version = 3,
+    version = 4,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -38,6 +38,13 @@ abstract class OutpatientDatabase : RoomDatabase() {
             }
         }
 
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE visits ADD COLUMN photoPaths TEXT NOT NULL DEFAULT ''")
+                db.execSQL("UPDATE visits SET photoPaths = photoPath WHERE photoPath IS NOT NULL AND photoPath != ''")
+            }
+        }
+
         @Volatile
         private var instance: OutpatientDatabase? = null
 
@@ -47,7 +54,7 @@ abstract class OutpatientDatabase : RoomDatabase() {
                     context.applicationContext,
                     OutpatientDatabase::class.java,
                     DATABASE_NAME,
-                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3)
+                ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
                     .build()
                     .also { instance = it }
             }

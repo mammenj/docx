@@ -23,6 +23,7 @@ data class Visit(
     val recordedAt: Long,
     val department: String = "General Medicine",
     val photoPath: String? = null,
+    val photoPaths: List<String> = emptyList(),
     val symptoms: String = "",
     val notes: String = "",
     val systolic: Int? = null,

@@ -193,7 +193,10 @@ object PdfReportGenerator {
                     if (vitals.isNotEmpty()) {
                         drawWrapped("  Vitals: ${vitals.joinToString(", ")}", paint, 4f)
                     }
-                    visit.photoPath?.let { path ->
+                    val photoPaths = visit.photoPaths.ifEmpty {
+                        visit.photoPath?.let { listOf(it) } ?: emptyList()
+                    }
+                    photoPaths.forEach { path ->
                         val file = File(path)
                         if (file.exists()) {
                             val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)

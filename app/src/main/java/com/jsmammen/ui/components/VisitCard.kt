@@ -36,8 +36,11 @@ fun VisitCard(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            val photoBitmap = remember(visit.photoPath) {
-                visit.photoPath?.let { path ->
+            val firstPhotoPath = remember(visit.photoPaths, visit.photoPath) {
+                visit.photoPaths.firstOrNull() ?: visit.photoPath
+            }
+            val photoBitmap = remember(firstPhotoPath) {
+                firstPhotoPath?.let { path ->
                     val file = File(path)
                     if (file.exists()) android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap() else null
                 }
