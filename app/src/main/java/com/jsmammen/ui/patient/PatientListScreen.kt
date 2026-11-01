@@ -67,47 +67,6 @@ fun PatientListScreen(
     val visitsByPatient by viewModel.visitsByPatient.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val clinicSettings = remember { ClinicSettings(context) }
-    val backupViewModel: BackupViewModel = viewModel { BackupViewModel(repository) }
-    val prefs = context.getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
-    var showRestoreDialog by remember { mutableStateOf(false) }
-
-    LaunchedEffect(patients) {
-        if (patients.isEmpty() && !prefs.getBoolean("restore_prompted", false)) {
-            showRestoreDialog = true
-        } else if (patients.isNotEmpty()) {
-            showRestoreDialog = false
-        }
-    }
-
-    val restorePicker = androidx.activity.compose.rememberLauncherForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        uri?.let { backupViewModel.importFrom(context, it) }
-    }
-
-    if (showRestoreDialog) {
-        androidx.compose.material3.AlertDialog(
-            onDismissRequest = {
-                showRestoreDialog = false
-                prefs.edit().putBoolean("restore_prompted", true).apply()
-            },
-            title = { Text("Restore data?") },
-            text = { Text("No patient records found. Restore from a backup file?") },
-            confirmButton = {
-                TextButton(onClick = { restorePicker.launch(arrayOf("application/json", "text/plain")) }) {
-                    Text("Import")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    showRestoreDialog = false
-                    prefs.edit().putBoolean("restore_prompted", true).apply()
-                }) {
-                    Text("Cancel")
-                }
-            },
-        )
-    }
 
     AppScaffold(
         topBar = {

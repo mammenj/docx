@@ -10,43 +10,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.time.Instant
-import java.time.LocalDate
-import java.time.ZoneOffset
-
-enum class ReportType {
-    VISITED_ON_DATE,
-    SYMPTOMS,
-    DIAGNOSIS,
-    AGE,
-    METRICS,
-}
-
-enum class ReportScope {
-    PATIENTS_ONLY,
-    PATIENTS_AND_VISITS,
-}
 
 data class ReportFilters(
-    val type: ReportType = ReportType.VISITED_ON_DATE,
-    val dateMillis: Long = ReportsViewModel.todayMillis(),
-    val symptomQuery: String = "",
-    val diagnosisQuery: String = "",
-    val ageMin: String = "",
-    val ageMax: String = "",
-    val systolicMin: String = "",
-    val diastolicMin: String = "",
-    val glucoseMin: String = "",
-    val pulseMin: String = "",
-    val tempMin: String = "",
-    val spo2Max: String = "",
-    val weightMin: String = "",
-    val scope: ReportScope = ReportScope.PATIENTS_ONLY,
+    val searchQuery: String = "",
 )
 
 class ReportsViewModel(
@@ -57,7 +25,7 @@ class ReportsViewModel(
     val filters: StateFlow<ReportFilters> = _filters
 
     private val _allPatients = MutableStateFlow<List<Patient>>(emptyList())
-    val _visitsByPatient = MutableStateFlow<Map<Long, List<Visit>>>(emptyMap())
+    private val _visitsByPatient = MutableStateFlow<Map<Long, List<Visit>>>(emptyMap())
     val visitsByPatient: StateFlow<Map<Long, List<Visit>>> = _visitsByPatient
 
     private val _isGenerating = MutableStateFlow(false)
@@ -71,8 +39,13 @@ class ReportsViewModel(
         _allPatients,
         _visitsByPatient,
     ) { filter, patients, visits ->
-        patients.filter { patient ->
-            matches(filter, patient, visits[patient.id].orEmpty())
+        val q = filter.searchQuery.trim()
+        if (q.isBlank()) {
+            patients
+        } else {
+            patients.filter { patient ->
+                patientMatches(patient, visits[patient.id].orEmpty(), q)
+            }
         }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
@@ -108,60 +81,8 @@ class ReportsViewModel(
         }
     }
 
-    fun setType(type: ReportType) {
-        _filters.value = _filters.value.copy(type = type)
-    }
-
-    fun setDateMillis(millis: Long) {
-        _filters.value = _filters.value.copy(dateMillis = millis)
-    }
-
-    fun setSymptomQuery(value: String) {
-        _filters.value = _filters.value.copy(symptomQuery = value)
-    }
-
-    fun setDiagnosisQuery(value: String) {
-        _filters.value = _filters.value.copy(diagnosisQuery = value)
-    }
-
-    fun setAgeMin(value: String) {
-        _filters.value = _filters.value.copy(ageMin = value)
-    }
-
-    fun setAgeMax(value: String) {
-        _filters.value = _filters.value.copy(ageMax = value)
-    }
-
-    fun setSystolicMin(value: String) {
-        _filters.value = _filters.value.copy(systolicMin = value)
-    }
-
-    fun setDiastolicMin(value: String) {
-        _filters.value = _filters.value.copy(diastolicMin = value)
-    }
-
-    fun setGlucoseMin(value: String) {
-        _filters.value = _filters.value.copy(glucoseMin = value)
-    }
-
-    fun setPulseMin(value: String) {
-        _filters.value = _filters.value.copy(pulseMin = value)
-    }
-
-    fun setTempMin(value: String) {
-        _filters.value = _filters.value.copy(tempMin = value)
-    }
-
-    fun setSpo2Max(value: String) {
-        _filters.value = _filters.value.copy(spo2Max = value)
-    }
-
-    fun setWeightMin(value: String) {
-        _filters.value = _filters.value.copy(weightMin = value)
-    }
-
-    fun setScope(scope: ReportScope) {
-        _filters.value = _filters.value.copy(scope = scope)
+    fun setSearchQuery(value: String) {
+        _filters.value = _filters.value.copy(searchQuery = value)
     }
 
     fun generatePdf(context: android.content.Context) {
@@ -169,12 +90,8 @@ class ReportsViewModel(
             _isGenerating.value = true
             val filter = _filters.value
             val patients = results.value
-            val visitsMap = if (filter.scope == ReportScope.PATIENTS_ONLY) {
-                emptyMap()
-            } else {
-                patients.associate { patient ->
-                    patient.id to reportVisits(patient, filter, _visitsByPatient.value[patient.id].orEmpty())
-                }
+            val visitsMap = patients.associate { patient ->
+                patient.id to reportVisits(patient, filter, _visitsByPatient.value[patient.id].orEmpty())
             }
             val title = reportTitle(filter)
             val file = PdfGenerator.generate(context.applicationContext, title, patients, visitsMap)
@@ -187,120 +104,34 @@ class ReportsViewModel(
         _generatedFile.value = null
     }
 
-    private fun matches(filter: ReportFilters, patient: Patient, visits: List<Visit>): Boolean {
-        return when (filter.type) {
-            ReportType.VISITED_ON_DATE -> {
-                val (start, end) = dateRange(filter.dateMillis)
-                visits.any { it.recordedAt in start..end }
-            }
+    private fun patientMatches(patient: Patient, visits: List<Visit>, query: String): Boolean {
+        if (patient.name.contains(query, ignoreCase = true)) return true
+        if (patient.uid.contains(query, ignoreCase = true)) return true
+        patient.idNumber?.let { if (it.contains(query, ignoreCase = true)) return true }
+        patient.sex?.let { if (it.contains(query, ignoreCase = true)) return true }
+        patient.phone?.let { if (it.contains(query, ignoreCase = true)) return true }
+        patient.ageYears?.let { if (it.toString().contains(query)) return true }
 
-            ReportType.SYMPTOMS -> {
-                val query = filter.symptomQuery.trim()
-                if (query.isBlank()) false
-                else visits.any { it.symptoms.contains(query, ignoreCase = true) }
-            }
-
-            ReportType.DIAGNOSIS -> {
-                val query = filter.diagnosisQuery.trim()
-                if (query.isBlank()) false
-                else visits.any { it.notes.contains(query, ignoreCase = true) }
-            }
-
-            ReportType.AGE -> {
-                val age = patient.ageYears ?: return false
-                val min = filter.ageMin.trim().toIntOrNull()
-                val max = filter.ageMax.trim().toIntOrNull()
-                (min == null || age >= min) && (max == null || age <= max)
-            }
-
-            ReportType.METRICS -> {
-                visits.any { visitMatchesMetrics(it, filter) }
-            }
+        return visits.any { visit ->
+            visit.department.contains(query, ignoreCase = true) ||
+                visit.symptoms.contains(query, ignoreCase = true) ||
+                visit.notes.contains(query, ignoreCase = true) ||
+                visit.systolic?.toString()?.contains(query) == true ||
+                visit.diastolic?.toString()?.contains(query) == true ||
+                visit.glucoseValue?.toString()?.contains(query) == true ||
+                visit.pulse?.toString()?.contains(query) == true ||
+                visit.temperatureC?.toString()?.contains(query) == true ||
+                visit.spo2?.toString()?.contains(query) == true ||
+                visit.weightKg?.toString()?.contains(query) == true
         }
     }
 
     fun reportVisits(patient: Patient, filter: ReportFilters, visits: List<Visit>): List<Visit> {
-        return when (filter.type) {
-            ReportType.VISITED_ON_DATE -> {
-                val (start, end) = dateRange(filter.dateMillis)
-                visits.filter { it.recordedAt in start..end }
-            }
-
-            ReportType.SYMPTOMS -> {
-                val query = filter.symptomQuery.trim()
-                if (query.isBlank()) visits else visits.filter { it.symptoms.contains(query, ignoreCase = true) }
-            }
-
-            ReportType.DIAGNOSIS -> {
-                val query = filter.diagnosisQuery.trim()
-                if (query.isBlank()) visits else visits.filter { it.notes.contains(query, ignoreCase = true) }
-            }
-
-            ReportType.METRICS -> {
-                val hasThreshold = filter.systolicMin.isNotBlank() || filter.diastolicMin.isNotBlank() ||
-                    filter.glucoseMin.isNotBlank() || filter.pulseMin.isNotBlank() ||
-                    filter.tempMin.isNotBlank() || filter.spo2Max.isNotBlank() || filter.weightMin.isNotBlank()
-                if (!hasThreshold) visits else visits.filter { visitMatchesMetrics(it, filter) }
-            }
-
-            ReportType.AGE -> visits
-        }
-    }
-
-    private fun visitMatchesMetrics(visit: Visit, filter: ReportFilters): Boolean {
-        filter.systolicMin.trim().toIntOrNull()?.let { min ->
-            if (visit.systolic == null || visit.systolic < min) return false
-        }
-        filter.diastolicMin.trim().toIntOrNull()?.let { min ->
-            if (visit.diastolic == null || visit.diastolic < min) return false
-        }
-        filter.glucoseMin.trim().toDoubleOrNull()?.let { min ->
-            if (visit.glucoseValue == null || visit.glucoseValue < min) return false
-        }
-        filter.pulseMin.trim().toIntOrNull()?.let { min ->
-            if (visit.pulse == null || visit.pulse < min) return false
-        }
-        filter.tempMin.trim().toDoubleOrNull()?.let { min ->
-            if (visit.temperatureC == null || visit.temperatureC < min) return false
-        }
-        filter.spo2Max.trim().toIntOrNull()?.let { max ->
-            if (visit.spo2 == null || visit.spo2 > max) return false
-        }
-        filter.weightMin.trim().toDoubleOrNull()?.let { min ->
-            if (visit.weightKg == null || visit.weightKg < min) return false
-        }
-        return true
+        return visits
     }
 
     fun reportTitle(filter: ReportFilters): String {
-        return when (filter.type) {
-            ReportType.VISITED_ON_DATE -> "Patients visited on ${formatDate(filter.dateMillis)}"
-            ReportType.SYMPTOMS -> "Patients with symptoms: ${filter.symptomQuery.trim()}"
-            ReportType.DIAGNOSIS -> "Patients with diagnosis/notes: ${filter.diagnosisQuery.trim()}"
-            ReportType.AGE -> {
-                val min = filter.ageMin.trim().ifBlank { "any" }
-                val max = filter.ageMax.trim().ifBlank { "any" }
-                "Patients aged $min to $max"
-            }
-
-            ReportType.METRICS -> "Patients matching metric filters"
-        }
-    }
-
-    private fun dateRange(millis: Long): Pair<Long, Long> {
-        val date = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-        val start = date.atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-        val end = date.plusDays(1).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() - 1
-        return start to end
-    }
-
-    companion object {
-        fun todayMillis(): Long =
-            LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli()
-
-        fun formatDate(millis: Long): String {
-            val date = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate()
-            return date.toString()
-        }
+        val q = filter.searchQuery.trim()
+        return if (q.isBlank()) "All Patient Records" else "Search results for: $q"
     }
 }

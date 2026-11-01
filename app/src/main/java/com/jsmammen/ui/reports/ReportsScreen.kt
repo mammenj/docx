@@ -22,11 +22,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -37,15 +35,12 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -84,7 +79,6 @@ fun ReportsScreen(
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    var showDatePicker by remember { mutableStateOf(false) }
 
     LaunchedEffect(generatedFile) {
         generatedFile?.let { file ->
@@ -131,127 +125,14 @@ fun ReportsScreen(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             item {
-                Text("Report type", style = MaterialTheme.typography.titleSmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    ReportType.entries.forEach { type ->
-                        FilterChip(
-                            selected = filters.type == type,
-                            onClick = { viewModel.setType(type) },
-                            label = { Text(type.label()) },
-                        )
-                    }
-                }
-            }
-
-            item {
-                when (filters.type) {
-                    ReportType.VISITED_ON_DATE -> {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            Text("Date: ${ReportsViewModel.formatDate(filters.dateMillis)}")
-                            Button(onClick = { showDatePicker = true }) {
-                                Text("Pick date")
-                            }
-                        }
-                    }
-
-                    ReportType.SYMPTOMS -> {
-                        OutlinedTextField(
-                            value = filters.symptomQuery,
-                            onValueChange = viewModel::setSymptomQuery,
-                            label = { Text("Symptoms contain") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    ReportType.DIAGNOSIS -> {
-                        OutlinedTextField(
-                            value = filters.diagnosisQuery,
-                            onValueChange = viewModel::setDiagnosisQuery,
-                            label = { Text("Diagnosis/notes contain") },
-                            modifier = Modifier.fillMaxWidth(),
-                        )
-                    }
-
-                    ReportType.AGE -> {
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = filters.ageMin,
-                                onValueChange = viewModel::setAgeMin,
-                                label = { Text("Min age") },
-                                modifier = Modifier.weight(1f),
-                            )
-                            OutlinedTextField(
-                                value = filters.ageMax,
-                                onValueChange = viewModel::setAgeMax,
-                                label = { Text("Max age") },
-                                modifier = Modifier.weight(1f),
-                            )
-                        }
-                    }
-
-                    ReportType.METRICS -> {
-                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                            OutlinedTextField(
-                                value = filters.systolicMin,
-                                onValueChange = viewModel::setSystolicMin,
-                                label = { Text("Systolic >=") },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            OutlinedTextField(
-                                value = filters.diastolicMin,
-                                onValueChange = viewModel::setDiastolicMin,
-                                label = { Text("Diastolic >=") },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            OutlinedTextField(
-                                value = filters.glucoseMin,
-                                onValueChange = viewModel::setGlucoseMin,
-                                label = { Text("Glucose >=") },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            OutlinedTextField(
-                                value = filters.pulseMin,
-                                onValueChange = viewModel::setPulseMin,
-                                label = { Text("Pulse >=") },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            OutlinedTextField(
-                                value = filters.tempMin,
-                                onValueChange = viewModel::setTempMin,
-                                label = { Text("Temperature >=") },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            OutlinedTextField(
-                                value = filters.spo2Max,
-                                onValueChange = viewModel::setSpo2Max,
-                                label = { Text("SpO2 <=") },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                            OutlinedTextField(
-                                value = filters.weightMin,
-                                onValueChange = viewModel::setWeightMin,
-                                label = { Text("Weight >=") },
-                                modifier = Modifier.fillMaxWidth(),
-                            )
-                        }
-                    }
-                }
-            }
-
-            item {
-                Text("Scope", style = MaterialTheme.typography.titleSmall)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    FilterChip(
-                        selected = filters.scope == ReportScope.PATIENTS_ONLY,
-                        onClick = { viewModel.setScope(ReportScope.PATIENTS_ONLY) },
-                        label = { Text("Patients only") },
-                    )
-                    FilterChip(
-                        selected = filters.scope == ReportScope.PATIENTS_AND_VISITS,
-                        onClick = { viewModel.setScope(ReportScope.PATIENTS_AND_VISITS) },
-                        label = { Text("Patients + visits") },
-                    )
-                }
+                OutlinedTextField(
+                    value = filters.searchQuery,
+                    onValueChange = viewModel::setSearchQuery,
+                    label = { Text("Search patients or visits") },
+                    leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                )
             }
 
             item {
@@ -277,30 +158,6 @@ fun ReportsScreen(
                     Text(if (isGenerating) "Generating PDF..." else "Generate PDF")
                 }
             }
-        }
-    }
-
-    if (showDatePicker) {
-        val datePickerState = androidx.compose.material3.rememberDatePickerState(
-            initialSelectedDateMillis = filters.dateMillis,
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(onClick = {
-                    datePickerState.selectedDateMillis?.let { viewModel.setDateMillis(it) }
-                    showDatePicker = false
-                }) {
-                    Text("OK")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }) {
-                    Text("Cancel")
-                }
-            },
-        ) {
-            DatePicker(state = datePickerState)
         }
     }
 }
@@ -411,11 +268,7 @@ private fun PdfDocumentPreview(
                             color = Color(0xFF60708A),
                         )
 
-                        val visits = if (filters.scope == ReportScope.PATIENTS_ONLY) {
-                            emptyList()
-                        } else {
-                            viewModel.reportVisits(patient, filters, visitsByPatient[patient.id].orEmpty())
-                        }
+                        val visits = viewModel.reportVisits(patient, filters, visitsByPatient[patient.id].orEmpty())
 
                         if (visits.isNotEmpty()) {
                             // Table Container with Horizontal Scroll for Responsive Alignment
@@ -470,20 +323,13 @@ private fun PdfDocumentPreview(
                                     }
                                 }
                             }
-                        } else if (filters.scope == ReportScope.PATIENTS_AND_VISITS) {
-                            Text(
-                                text = "No visits in this report.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color(0xFF60708A),
-                                modifier = Modifier.padding(vertical = 4.dp),
-                            )
                         }
 
                         // Visit Notes & Symptoms Section
-                        val visitsWithText = visits.filter { it.symptoms.isNotBlank() || it.notes.isNotBlank() }
+                        val visitsWithText = visits.filter { it.symptoms.isNotBlank() || it.notes.isNotBlank() || it.photoPaths.isNotEmpty() || it.pdfPaths.isNotEmpty() }
                         if (visitsWithText.isNotEmpty()) {
                             Text(
-                                text = "Visit notes:",
+                                text = "Visit notes & attachments:",
                                 style = MaterialTheme.typography.bodySmall,
                                 fontWeight = FontWeight.Bold,
                                 modifier = Modifier.padding(top = 4.dp),
@@ -629,12 +475,4 @@ private fun TableCell(text: String, width: androidx.compose.ui.unit.Dp) {
 
 private fun formatMetric(value: Double): String =
     if (value % 1.0 == 0.0) value.toInt().toString()
-    else String.format(Locale.getDefault(), "%.1f", value)
-
-private fun ReportType.label(): String = when (this) {
-    ReportType.VISITED_ON_DATE -> "Visited on date"
-    ReportType.SYMPTOMS -> "Symptoms"
-    ReportType.DIAGNOSIS -> "Diagnosis"
-    ReportType.AGE -> "Age"
-    ReportType.METRICS -> "Metrics"
-}
+    else String.format(java.util.Locale.getDefault(), "%.1f", value)
