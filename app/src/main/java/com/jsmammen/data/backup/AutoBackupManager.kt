@@ -46,7 +46,7 @@ class AutoBackupManager(
     private fun writeBackup(patients: List<Patient>, visits: List<Visit>) {
         try {
             val json = JSONObject().apply {
-                put("version", 1)
+                put("version", 2)
                 put("exportedAt", System.currentTimeMillis())
                 put("patients", JSONArray(patients.map { it.toJson() }))
                 put("visits", JSONArray(visits.map { it.toJson() }))
@@ -86,10 +86,9 @@ class AutoBackupManager(
         put("spo2", spo2 ?: JSONObject.NULL)
         put("weightKg", weightKg ?: JSONObject.NULL)
         put("photoPath", photoPath ?: JSONObject.NULL)
-        val photoBase64 = photoPath?.let { path ->
-            val file = java.io.File(path)
-            if (file.exists()) android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP) else null
-        }
-        put("photoBase64", photoBase64 ?: JSONObject.NULL)
+        val pathsArray = JSONArray()
+        val paths = photoPaths.ifEmpty { photoPath?.let { listOf(it) } ?: emptyList() }
+        paths.forEach { p -> pathsArray.put(p) }
+        put("photoPaths", pathsArray)
     }
 }

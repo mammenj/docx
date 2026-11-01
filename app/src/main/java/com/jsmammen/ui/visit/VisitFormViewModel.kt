@@ -18,6 +18,7 @@ data class VisitFormState(
     val notes: String = "",
     val department: String = "General Medicine",
     val photoPaths: List<String> = emptyList(),
+    val pdfPaths: List<String> = emptyList(),
     val systolic: String = "",
     val diastolic: String = "",
     val glucoseValue: String = "",
@@ -48,6 +49,10 @@ class VisitFormViewModel(
     fun onPhotoAdd(path: String) = _state.update { it.copy(photoPaths = it.photoPaths + path) }
 
     fun onPhotoRemove(path: String) = _state.update { it.copy(photoPaths = it.photoPaths - path) }
+
+    fun onPdfAdd(path: String) = _state.update { it.copy(pdfPaths = it.pdfPaths + path) }
+
+    fun onPdfRemove(path: String) = _state.update { it.copy(pdfPaths = it.pdfPaths - path) }
 
     fun onSystolicChange(value: String) =
         _state.update { it.copy(systolic = value, errors = it.errors.copy(systolic = null)) }
@@ -101,6 +106,7 @@ class VisitFormViewModel(
                     department = current.department.trim().ifBlank { "General Medicine" },
                     photoPath = current.photoPaths.firstOrNull(),
                     photoPaths = current.photoPaths,
+                    pdfPaths = current.pdfPaths,
                     symptoms = current.symptoms.trim(),
                     notes = current.notes.trim(),
                     systolic = current.systolic.trim().toIntOrNull(),

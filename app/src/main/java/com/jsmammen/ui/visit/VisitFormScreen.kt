@@ -23,6 +23,8 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -70,8 +72,16 @@ fun VisitFormScreen(
 
     val galleryLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         uris.forEach { uri ->
-            copyImageToAppStorage(context, uri)?.let { path ->
+            copyFileToAppStorage(context, uri, "jpg")?.let { path ->
                 viewModel.onPhotoAdd(path)
+            }
+        }
+    }
+
+    val pdfLauncher = rememberLauncherForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        uris.forEach { uri ->
+            copyFileToAppStorage(context, uri, "pdf")?.let { path ->
+                viewModel.onPdfAdd(path)
             }
         }
     }
@@ -243,7 +253,7 @@ fun VisitFormScreen(
             Text("Photos (optional)", style = MaterialTheme.typography.titleSmall)
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { galleryLauncher.launch("image/*") }) {
-                    Text("Add from Gallery")
+                    Text("Add Photos")
                 }
                 Button(onClick = { cameraLauncher.launch(cameraUri) }) {
                     Text("Take Photo")
@@ -284,6 +294,42 @@ fun VisitFormScreen(
                 }
             }
 
+            Text("PDF Documents (optional)", style = MaterialTheme.typography.titleSmall)
+            Button(onClick = { pdfLauncher.launch("application/pdf") }) {
+                Text("Add PDF from system")
+            }
+
+            if (state.pdfPaths.isNotEmpty()) {
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(state.pdfPaths, key = { it }) { path ->
+                        val fileName = File(path).name
+                        AssistChip(
+                            onClick = {},
+                            label = { Text(fileName.take(18)) },
+                            leadingIcon = {
+                                Icon(
+                                    imageVector = Icons.Default.Description,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                )
+                            },
+                            trailingIcon = {
+                                IconButton(
+                                    onClick = { viewModel.onPdfRemove(path) },
+                                    modifier = Modifier.size(20.dp),
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "Remove PDF",
+                                        modifier = Modifier.size(14.dp),
+                                    )
+                                }
+                            },
+                        )
+                    }
+                }
+            }
+
             Button(
                 onClick = viewModel::save,
                 enabled = !state.saving,
@@ -316,10 +362,10 @@ private fun VitalField(
     )
 }
 
-private fun copyImageToAppStorage(context: Context, uri: Uri): String? {
+private fun copyFileToAppStorage(context: Context, uri: Uri, extension: String): String? {
     return try {
-        val dir = File(context.filesDir, "visit_photos").apply { mkdirs() }
-        val file = File(dir, "photo_${System.currentTimeMillis()}_${(0..999).random()}.jpg")
+        val dir = File(context.filesDir, "visit_docs").apply { mkdirs() }
+        val file = File(dir, "doc_${System.currentTimeMillis()}_${(0..999).random()}.$extension")
         context.contentResolver.openInputStream(uri)?.use { input ->
             FileOutputStream(file).use { output -> input.copyTo(output) }
         }

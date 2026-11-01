@@ -12,8 +12,8 @@ android {
         applicationId = "com.jsmammen"
         minSdk = 26
         targetSdk = 37
-        versionCode = 15
-        versionName = "1.9.5"
+        versionCode = 20
+        versionName = "1.9.10"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 

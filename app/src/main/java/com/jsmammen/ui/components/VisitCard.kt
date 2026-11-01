@@ -1,24 +1,28 @@
 package com.jsmammen.ui.components
 
-import androidx.compose.foundation.Image
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.material3.Card
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Description
+import androidx.compose.material.icons.filled.Image
+import androidx.compose.material3.AssistChip
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import com.jsmammen.data.model.Visit
 import com.jsmammen.ui.util.formatTimestamp
 import java.io.File
@@ -31,30 +35,106 @@ fun VisitCard(
     onClick: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     ElevatedCard(onClick = onClick, modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp),
         ) {
-            val firstPhotoPath = remember(visit.photoPaths, visit.photoPath) {
-                visit.photoPaths.firstOrNull() ?: visit.photoPath
+            val photoPaths = remember(visit.photoPaths, visit.photoPath) {
+                visit.photoPaths.ifEmpty { visit.photoPath?.let { listOf(it) } ?: emptyList() }
             }
-            val photoBitmap = remember(firstPhotoPath) {
-                firstPhotoPath?.let { path ->
-                    val file = File(path)
-                    if (file.exists()) android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap() else null
+            val pdfPaths = remember(visit.pdfPaths) { visit.pdfPaths }
+
+            if (photoPaths.isNotEmpty() || pdfPaths.isNotEmpty()) {
+                Row(
+                    modifier = Modifier.padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    photoPaths.forEachIndexed { index, path ->
+                        val file = File(path)
+                        if (file.exists()) {
+                            AssistChip(
+                                onClick = {
+                                    try {
+                                        val uri = FileProvider.getUriForFile(
+                                            context,
+                                            "${context.packageName}.fileprovider",
+                                            file,
+                                        )
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            setDataAndType(uri, "image/*")
+                                            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {
+                                        try {
+                                            val uri = android.net.Uri.fromFile(file)
+                                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                                setDataAndType(uri, "image/*")
+                                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                            Toast.makeText(context, "No app found to open image", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                label = { Text(if (photoPaths.size == 1) "Photo" else "Photo ${index + 1}") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Image,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                },
+                            )
+                        }
+                    }
+
+                    pdfPaths.forEachIndexed { index, path ->
+                        val file = File(path)
+                        if (file.exists()) {
+                            AssistChip(
+                                onClick = {
+                                    try {
+                                        val uri = FileProvider.getUriForFile(
+                                            context,
+                                            "${context.packageName}.fileprovider",
+                                            file,
+                                        )
+                                        val intent = Intent(Intent.ACTION_VIEW).apply {
+                                            setDataAndType(uri, "application/pdf")
+                                            flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                        }
+                                        context.startActivity(intent)
+                                    } catch (_: Exception) {
+                                        try {
+                                            val uri = android.net.Uri.fromFile(file)
+                                            val intent = Intent(Intent.ACTION_VIEW).apply {
+                                                setDataAndType(uri, "application/pdf")
+                                                flags = Intent.FLAG_GRANT_READ_URI_PERMISSION
+                                            }
+                                            context.startActivity(intent)
+                                        } catch (_: Exception) {
+                                            Toast.makeText(context, "No PDF viewer app found", Toast.LENGTH_SHORT).show()
+                                        }
+                                    }
+                                },
+                                label = { Text(if (pdfPaths.size == 1) "PDF Doc" else "PDF ${index + 1}") },
+                                leadingIcon = {
+                                    Icon(
+                                        imageVector = Icons.Default.Description,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                    )
+                                },
+                            )
+                        }
+                    }
                 }
             }
-            if (photoBitmap != null) {
-                Image(
-                    bitmap = photoBitmap,
-                    contentDescription = "Visit photo",
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = 180.dp),
-                    contentScale = ContentScale.Fit,
-                )
-            }
+
             Text(
                 text = formatTimestamp(visit.recordedAt),
                 style = MaterialTheme.typography.titleSmall,

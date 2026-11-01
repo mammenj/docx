@@ -35,7 +35,7 @@ class BackupViewModel(
                 val patients = repository.getAllPatients()
                 val visits = repository.getAllVisits()
                 val json = JSONObject().apply {
-                    put("version", 1)
+                    put("version", 2)
                     put("exportedAt", System.currentTimeMillis())
                     put("patients", JSONArray(patients.map { it.toJson() }))
                     put("visits", JSONArray(visits.map { it.toJson() }))
@@ -64,17 +64,7 @@ class BackupViewModel(
                 val patientsJson = json.getJSONArray("patients")
                 val visitsJson = json.getJSONArray("visits")
                 val patients = (0 until patientsJson.length()).map { patientsJson.getJSONObject(it).toPatient() }
-                val visits = (0 until visitsJson.length()).map { index ->
-                    val obj = visitsJson.getJSONObject(index)
-                    val visit = obj.toVisit()
-                    if (obj.isNull("photoBase64")) {
-                        visit
-                    } else {
-                        val bytes = android.util.Base64.decode(obj.getString("photoBase64"), android.util.Base64.DEFAULT)
-                        val path = savePhotoBytes(context, bytes)
-                        visit.copy(photoPath = path)
-                    }
-                }
+                val visits = (0 until visitsJson.length()).map { visitsJson.getJSONObject(it).toVisit() }
                 repository.importAll(patients, visits)
                 (context.applicationContext as OutpatientApp).autoBackupManager.suppressNextBackup()
                 _status.value = "Imported ${patients.size} patients and ${visits.size} visits."
@@ -123,11 +113,10 @@ class BackupViewModel(
         put("spo2", spo2 ?: JSONObject.NULL)
         put("weightKg", weightKg ?: JSONObject.NULL)
         put("photoPath", photoPath ?: JSONObject.NULL)
-        val photoBase64 = photoPath?.let { path ->
-            val file = java.io.File(path)
-            if (file.exists()) android.util.Base64.encodeToString(file.readBytes(), android.util.Base64.NO_WRAP) else null
-        }
-        put("photoBase64", photoBase64 ?: JSONObject.NULL)
+        val pathsArray = JSONArray()
+        val paths = photoPaths.ifEmpty { photoPath?.let { listOf(it) } ?: emptyList() }
+        paths.forEach { p -> pathsArray.put(p) }
+        put("photoPaths", pathsArray)
     }
 
     private fun JSONObject.toPatient(): Patient = Patient(
@@ -143,32 +132,40 @@ class BackupViewModel(
         deletedAt = if (isNull("deletedAt")) null else getLong("deletedAt"),
     )
 
-    private fun JSONObject.toVisit(): Visit = Visit(
-        id = getLong("id"),
-        patientId = getLong("patientId"),
-        recordedAt = getLong("recordedAt"),
-        department = if (isNull("department")) "General Medicine" else getString("department"),
-        symptoms = getString("symptoms"),
-        notes = getString("notes"),
-        systolic = if (isNull("systolic")) null else getInt("systolic"),
-        diastolic = if (isNull("diastolic")) null else getInt("diastolic"),
-        glucoseValue = if (isNull("glucoseValue")) null else getDouble("glucoseValue"),
-        glucoseUnit = if (isNull("glucoseUnit")) null else com.jsmammen.data.model.GlucoseUnit.valueOf(getString("glucoseUnit")),
-        pulse = if (isNull("pulse")) null else getInt("pulse"),
-        temperatureC = if (isNull("temperatureC")) null else getDouble("temperatureC"),
-        spo2 = if (isNull("spo2")) null else getInt("spo2"),
-        weightKg = if (isNull("weightKg")) null else getDouble("weightKg"),
-        photoPath = if (isNull("photoPath")) null else getString("photoPath"),
-    )
-
-    private fun savePhotoBytes(context: Context, bytes: ByteArray): String? {
-        return try {
-            val dir = java.io.File(context.filesDir, "visit_photos").apply { mkdirs() }
-            val file = java.io.File(dir, "photo_${System.currentTimeMillis()}.jpg")
-            file.writeBytes(bytes)
-            file.absolutePath
-        } catch (e: Exception) {
-            null
+    private fun JSONObject.toVisit(): Visit {
+        val paths = mutableListOf<String>()
+        if (has("photoPaths") && !isNull("photoPaths")) {
+            val arr = getJSONArray("photoPaths")
+            for (i in 0 until arr.length()) {
+                val p = arr.getString(i)
+                if (!p.isNullOrBlank() && File(p).exists()) {
+                    paths.add(p)
+                }
+                // Missing files on disk are automatically omitted (marked as missing)
+            }
+        } else if (!isNull("photoPath")) {
+            val p = getString("photoPath")
+            if (!p.isNullOrBlank() && File(p).exists()) {
+                paths.add(p)
+            }
         }
+        return Visit(
+            id = getLong("id"),
+            patientId = getLong("patientId"),
+            recordedAt = getLong("recordedAt"),
+            department = if (isNull("department")) "General Medicine" else getString("department"),
+            symptoms = getString("symptoms"),
+            notes = getString("notes"),
+            systolic = if (isNull("systolic")) null else getInt("systolic"),
+            diastolic = if (isNull("diastolic")) null else getInt("diastolic"),
+            glucoseValue = if (isNull("glucoseValue")) null else getDouble("glucoseValue"),
+            glucoseUnit = if (isNull("glucoseUnit")) null else com.jsmammen.data.model.GlucoseUnit.valueOf(getString("glucoseUnit")),
+            pulse = if (isNull("pulse")) null else getInt("pulse"),
+            temperatureC = if (isNull("temperatureC")) null else getDouble("temperatureC"),
+            spo2 = if (isNull("spo2")) null else getInt("spo2"),
+            weightKg = if (isNull("weightKg")) null else getDouble("weightKg"),
+            photoPath = paths.firstOrNull(),
+            photoPaths = paths,
+        )
     }
 }

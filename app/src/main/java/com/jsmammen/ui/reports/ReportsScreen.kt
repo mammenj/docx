@@ -506,10 +506,13 @@ private fun PdfDocumentPreview(
                                         style = MaterialTheme.typography.bodySmall,
                                     )
                                 }
-                                visit.photoPath?.let { path ->
+                                val photoPaths = visit.photoPaths.ifEmpty { visit.photoPath?.let { listOf(it) } ?: emptyList() }
+                                photoPaths.forEach { path ->
                                     val file = java.io.File(path)
                                     if (file.exists()) {
-                                        val bitmap = android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+                                        val bitmap = remember(path) {
+                                            android.graphics.BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+                                        }
                                         bitmap?.let {
                                             Image(
                                                 bitmap = it,
@@ -517,6 +520,45 @@ private fun PdfDocumentPreview(
                                                 modifier = Modifier
                                                     .fillMaxWidth()
                                                     .heightIn(max = 160.dp),
+                                                contentScale = ContentScale.Fit,
+                                            )
+                                        }
+                                    }
+                                }
+
+                                visit.pdfPaths.forEach { path ->
+                                    val file = java.io.File(path)
+                                    if (file.exists()) {
+                                        val bitmap = remember(path) {
+                                            try {
+                                                val pfd = android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                                                val renderer = android.graphics.pdf.PdfRenderer(pfd)
+                                                if (renderer.pageCount > 0) {
+                                                    val page = renderer.openPage(0)
+                                                    val bmp = android.graphics.Bitmap.createBitmap(page.width, page.height, android.graphics.Bitmap.Config.ARGB_8888)
+                                                    val c = android.graphics.Canvas(bmp)
+                                                    c.drawColor(android.graphics.Color.WHITE)
+                                                    page.render(bmp, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                                                    page.close()
+                                                    renderer.close()
+                                                    pfd.close()
+                                                    bmp.asImageBitmap()
+                                                } else {
+                                                    renderer.close()
+                                                    pfd.close()
+                                                    null
+                                                }
+                                            } catch (_: Exception) {
+                                                null
+                                            }
+                                        }
+                                        bitmap?.let {
+                                            Image(
+                                                bitmap = it,
+                                                contentDescription = "PDF document preview",
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .heightIn(max = 200.dp),
                                                 contentScale = ContentScale.Fit,
                                             )
                                         }

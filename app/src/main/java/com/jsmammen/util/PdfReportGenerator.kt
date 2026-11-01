@@ -215,6 +215,41 @@ object PdfReportGenerator {
                             }
                         }
                     }
+
+                    visit.pdfPaths.forEach { path ->
+                        val file = File(path)
+                        if (file.exists()) {
+                            try {
+                                val pfd = android.os.ParcelFileDescriptor.open(file, android.os.ParcelFileDescriptor.MODE_READ_ONLY)
+                                val renderer = android.graphics.pdf.PdfRenderer(pfd)
+                                for (i in 0 until renderer.pageCount) {
+                                    val page = renderer.openPage(i)
+                                    val bitmap = android.graphics.Bitmap.createBitmap(page.width, page.height, android.graphics.Bitmap.Config.ARGB_8888)
+                                    val pageCanvas = android.graphics.Canvas(bitmap)
+                                    pageCanvas.drawColor(Color.WHITE)
+                                    page.render(bitmap, null, null, android.graphics.pdf.PdfRenderer.Page.RENDER_MODE_FOR_PRINT)
+                                    page.close()
+
+                                    val maxW = maxWidth * 0.75f
+                                    val maxH = 350f
+                                    val scale = minOf(maxW / bitmap.width, maxH / bitmap.height, 1f)
+                                    val w = bitmap.width * scale
+                                    val h = bitmap.height * scale
+                                    ensureSpace(h + 12f)
+                                    y += 6f
+                                    val left = margin + (maxWidth - w) / 2f
+                                    val rect = android.graphics.RectF(left, y, left + w, y + h)
+                                    canvas.drawBitmap(bitmap, null, rect, null)
+                                    y += h + 8f
+                                    bitmap.recycle()
+                                }
+                                renderer.close()
+                                pfd.close()
+                            } catch (_: Exception) {
+                                drawWrapped("  [Attached PDF: ${file.name}]", smallPaint, 4f)
+                            }
+                        }
+                    }
                 }
             }
 
